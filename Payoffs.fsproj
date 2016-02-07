@@ -76,6 +76,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="MC.fs" />
+    <Compile Include="Lattice.fs" />
     <Compile Include="UnitTests.fs" />
     <None Include="Script.fsx" />
     <Content Include="packages.config" />
