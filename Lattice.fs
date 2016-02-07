@@ -1,10 +1,28 @@
-﻿namespace Payoffs
+﻿//
+// Payoffs - F# derivatives pricing library
+// Copyright (c) 2016 by Albert Pang <albert.pang@me.com> 
+// All rights reserved.
+//
+// This file is a part of Payoffs
+//
+// Payoffs is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Payoffs is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+namespace Payoffs
 
 module Lattice =
 
-  type OptionType =
-  | Call
-  | Put
+  open Payoffs.Option
 
   let toIndex (i, j) = i * (i + 1) /2 + j
 
@@ -35,7 +53,7 @@ module Lattice =
     fun (_, i, j) ->
       s0 * up ** (float (i - j)) * down ** (float j)
 
-  let calcTerminal (paths: 'a[]) payoff =
+  let calcTerminal (paths: 'a[]) (payoff:'a->float) =
     fun (_, i, j) ->
       let n = toIndex(i, j)
       payoff paths.[n]
@@ -53,7 +71,7 @@ module Lattice =
       let (u, p, discount) = riskNeutralProb r q v dt
       discount * (p*upValue + (1.0-p)*downValue)
 
-  let price s0 r q v t n payoff =
+  let price s0 r q v t n (payoff:'a->float) =
     let paths = initGrid n
     let values = initGrid n
     let dt = t/float n
@@ -61,7 +79,7 @@ module Lattice =
     populate s0 u (1.0/u) |> set n paths
     calcTerminal paths payoff |> setPeriod n values
     backwardInduce r q v dt |> setRev (n-1) values
-    values
+    values.[0]
 
   let european optType strike s =
     let intrinsic = s - strike

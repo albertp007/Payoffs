@@ -75,6 +75,7 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Option.fs" />
     <Compile Include="MC.fs" />
     <Compile Include="Lattice.fs" />
     <Compile Include="UnitTests.fs" />
