@@ -54,8 +54,17 @@ module UnitTests =
 
   [<TestCase(0.02, 0.4, 100.0, 0.25, 5000)>]
   let ``Binomial pricing european option``(r, v, s0, t, n) =
-    let value = Lattice.price s0 r 0.0 v t n <| Lattice.european Call s0
+    let nodeValue node discounted = discounted
+    let value = Lattice.price s0 r 0.0 v t n europeanNodeValue 
+                <| vanilla Call s0
     value |> should (equalWithin 0.05) 8.19755
+
+  [<TestCase(0.05, 0.3, 50.0, 52.0, 2, 5000)>]
+  let ``Binomial pricing american option``(r, v, s0, k, t, n) =
+    let nodeValue node discounted = max discounted (k - node.AssetPrice)
+    let value = Lattice.price s0 r 0.0 v t n (americanNodeValue Put k)
+                <| vanilla Put k
+    value |> should (equalWithin 0.05) 7.47
 
 
 
