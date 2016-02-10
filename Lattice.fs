@@ -21,14 +21,56 @@
 namespace Payoffs
 
 open Payoffs.Option
+open System.Collections.Generic
 
 module Lattice =
 
+  type Binomial(period) =
+    let totalPeriods = (period+1)*(period+2)/2
+    let assetPrices = Array.init totalPeriods (fun _ -> 0.0)
+    let values = Array.init totalPeriods (fun _ -> 0.0)
+    let states = Dictionary<int*int*int, float>()
+  with
+    member this.AssetPrices = assetPrices
+
+    member this.Values = values
+
+    member this.States = states
+
+    member this.Period = period
+
+    member this.ToIndex (i,j) = i * (i+1) /2 + j
+
+    member this.GetValue (i, j) = values.[this.ToIndex(i,j)]
+
+    member this.GetAssetPrice (i, j) = assetPrices.[this.ToIndex(i, j)]
+
+    member this.GetState (i, j, k) = 
+      if states.ContainsKey (i, j, k) then Some states.[(i, j, k)] else None
+
+    member this.SetValue (i, j) value = values.[this.ToIndex(i, j)] <- value
+
+    member this.SetAssetPrice(i, j) price =
+      assetPrices.[this.ToIndex(i, j)] <- price
+
+    member this.SetState (i, j, k) state =
+      if states.ContainsKey(i, j, k) then states.[(i, j, k)] <- state
+      else states.Add ((i, j, k), state)
+
+    member this.GetProbabilities(r, q, v, t) =
+      let dt = t / float this.Period
+      let u = v * sqrt dt
+      let p = (exp ((r-q)*dt) - exp(-u))/(exp (u) - exp (-u))
+      let discount = exp (-r*dt)
+      (exp u, p, discount)
+     
   type Node = {
     mutable AssetPrice: float
     mutable Value: float
+    // States: Dictionary<int, float>
   } with
     static member Make assetPrice value = 
+      // { AssetPrice = assetPrice; Value = value;  States=Dictionary<int, float>() }
       { AssetPrice = assetPrice; Value = value }
     static member Default() = Node.Make 0.0 0.0
 

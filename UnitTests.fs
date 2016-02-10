@@ -66,5 +66,16 @@ module UnitTests =
                 <| vanilla Put k
     value |> should (equalWithin 0.05) 7.47
 
+  [<TestCase(5000)>]
+  let ``Creating two arrays for X number of periods``(period) =
+    let nodes = initGrid' period
+    let values = initGrid' period
+    0 |> should equal 0
+
+  [<TestCase(5000)>]
+  let ``Creating one array of Nodes for X number of periods``(period) =
+    let nodes = initGrid period
+    0 |> should equal 0
+
 
 
