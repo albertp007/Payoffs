@@ -37,7 +37,7 @@ module UnitTests =
     samples.Mean() |> should (equalWithin 0.1) 0.0
 
   [<TestCase(0.02, 0.4, 100.0, 0.25, 1, 5000000)>]
-  let ``Pricing european call option with antithetic variance reduction``(r, sigma, s0, t, n, m) =
+  let ``MC european call option with antithetic variance reduction``(r, sigma, s0, t, n, m) =
     let (estimate, var, std) =
       gbm r sigma s0 t n ATV
       |> genPaths m 
@@ -45,37 +45,68 @@ module UnitTests =
     estimate |> should (equalWithin (2.0*std)) 8.19755
 
   [<TestCase(0.02, 0.4, 100.0, 0.25, 1, 5000000)>]
-  let ``Pricing european call option without variance reduction``(r, sigma, s0, t, n, m) =
+  let ``MC european call option without variance reduction``(r, sigma, s0, t, n, m) =
     let (estimate, var, std) =
       gbm r sigma s0 t n None
       |> genPaths m 
       |> mc (MC.european Call s0 |> discountedPayoff r t)
     estimate |> should (equalWithin (2.0*std)) 8.19755
 
-  [<TestCase(0.02, 0.4, 100.0, 0.25, 5000)>]
-  let ``Binomial pricing european option``(r, v, s0, t, n) =
-    let nodeValue node discounted = discounted
-    let value = Lattice.price s0 r 0.0 v t n europeanNodeValue 
-                <| vanilla Call s0
-    value |> should (equalWithin 0.05) 8.19755
+  [<TestCase(50.0, 0.05, 0.0, 0.4, 0.25, 5000)>]
+  let ``Binomial - number of nodes``(s0, r, q, v, t, n) =
+    let expected = (n+1)*(n+2)/2
+    let tree = Binomial(s0, r, q, v, t, n)
+    tree.NumNodes |> should equal expected    
 
-  [<TestCase(0.05, 0.3, 50.0, 52.0, 2, 5000)>]
-  let ``Binomial pricing american option``(r, v, s0, k, t, n) =
-    let nodeValue node discounted = max discounted (k - node.AssetPrice)
-    let value = Lattice.price s0 r 0.0 v t n (americanNodeValue Put k)
-                <| vanilla Put k
-    value |> should (equalWithin 0.05) 7.47
+  [<TestCase(50.0, 0.05, 0.0, 0.4, 0.25, 3)>]
+  let ``Binomial calc up down``(s0, r, q, v, t, n) =
+    let dt = t / float n
+    let expected = exp ( v * sqrt dt) 
+    let tree = Binomial(s0, r, q, v, t, n)
+    let (u, _, _ ) = tree.GetProbabilities()
+    u |> should equal expected
 
-  [<TestCase(5000)>]
-  let ``Creating two arrays for X number of periods``(period) =
-    let nodes = initGrid' period
-    let values = initGrid' period
-    0 |> should equal 0
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, 1, 52.0, 0, 0)>]
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 3, 1, 48.0, 2, 1)>]
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 4, 0, 52.0, 3, 3)>]
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 2, 0, 48.0, 2, 1)>]
+  let ``Binomial GetAssetPrice``(s0, r, q, v, t, n, optType, k, i, j) =
+    let tree = Binomial(s0, r, q, v, t, n)
+    let (u, _, _) = tree.GetProbabilities()
+    let d = 1.0/u
+    let expected = s0 * (u ** (float j)) * (d ** (float (i-j)))
+    tree.BuildGrid()
+    tree.GetAssetPrice (i, j) |> should (equalWithin 0.01) expected
 
-  [<TestCase(5000)>]
-  let ``Creating one array of Nodes for X number of periods``(period) =
-    let nodes = initGrid period
-    0 |> should equal 0
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, 1, 52.0)>]
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, 1, 48.0)>]
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, 0, 52.0)>]
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, 0, 48.0)>]
+  let ``Binomial GetIntrinsic``(s0, r, q, v, t, n, optType, k) =
+    let optType' = if optType = 0 then Call else Put
+    let expected = match optType' with
+                   | Call -> s0 - k
+                   | Put -> k - s0   
+    let tree = Binomial(s0, r, q, v, t, n)
+    tree.BuildGrid()
+    tree.GetIntrinsic optType' k (0, 0) |> should (equalWithin 0.01) expected
+
+  [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, 5000, 0, 100.0)>]
+  let ``Binomial class european option``(s0, r, q, v, t, n, optType, k) =
+    let optType' = if optType = 0 then Call else Put    
+    let tree = Binomial(s0, r, q, v, t, n)
+    let price = tree.Price (vanillaPayoff optType' k) europeanValue
+    price |> should (equalWithin 0.05) 8.19775
+
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5000, 1, 52.0)>]
+  let ``Binomial class american option``(s0, r, q, v, t, n, optType, k) =
+    let optType' = if optType = 0 then Call else Put    
+    let tree = Binomial(s0, r, q, v, t, n)
+    let price = tree.Price (vanillaPayoff optType' k) 
+                  (americanValue optType' k)
+    price |> should (equalWithin 0.05) 7.47
+
+              
 
 
 
