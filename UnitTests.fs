@@ -67,14 +67,15 @@ module UnitTests =
     u |> should equal expected
 
   [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, 1, 52.0, 0, 0)>]
-  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 3, 1, 48.0, 2, 1)>]
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 3, 1, 48.0, 2, 0)>]
   [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 4, 0, 52.0, 3, 3)>]
-  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 2, 0, 48.0, 2, 1)>]
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 2, 0, 48.0, 2, 0)>]
   let ``Binomial GetAssetPrice``(s0, r, q, v, t, n, optType, k, i, j) =
     let tree = Binomial(s0, r, q, v, t, n)
     let (u, _, _) = tree.GetProbabilities()
     let d = 1.0/u
-    let expected = s0 * (u ** (float j)) * (d ** (float (i-j)))
+    let factor = if j > 0 then u else d
+    let expected = s0 * (factor ** float (abs j))
     tree.BuildGrid()
     tree.GetAssetPrice (i, j) |> should (equalWithin 0.01) expected
 

@@ -35,11 +35,13 @@ module Lattice =
   with
     static member IterRange range f =
       for i in range do
-        for j in 0..i do
+        for j in (-i)..(2)..i do
           f (i, int j)
 
     static member NodeAssetPrice s0 up down =
-      fun _ (i, j) -> s0 * up ** (float j) * down ** (float (i-j))
+      fun _ (i, j) -> 
+        let (factor, j') = (if j > 0 then up, float j else down, float (-j))
+        s0 * (factor ** j')
 
     member this.AssetPrices = assetPrices
 
@@ -63,7 +65,9 @@ module Lattice =
 
     member this.NumNodes = numNodes
 
-    member this.ToIndex (i,j) = i * (i+1) /2 + j
+    member this.ToIndex (i,j) = 
+      // i * (i+1) /2 + (i + j)/2
+      (i*i + 2*i + j)/2
 
     member this.GetValue (i, j) = values.[this.ToIndex(i,j)]
 
@@ -103,7 +107,7 @@ module Lattice =
     member this.GetInducedValue(i, j) =
       let (_, p, discount) = this.GetProbabilities()
       let upValue = this.GetValue (i+1, j+1)
-      let downValue = this.GetValue (i+1, j)
+      let downValue = this.GetValue (i+1, j-1)
       let (_, p, discount) = this.GetProbabilities()
       (discount * (p*upValue + (1.0-p)*downValue))
 
@@ -135,7 +139,7 @@ module Lattice =
       let (up, _, _) = this.GetProbabilities()
       let nodeAssetPrice = Binomial.NodeAssetPrice s0 up (1.0/up)
       let upNode = (i+1, j+1)
-      let downNode = (i+1, j)
+      let downNode = (i+1, j-1)
       this.SetAssetPrice upNode <| nodeAssetPrice this upNode
       this.SetAssetPrice downNode <| nodeAssetPrice this downNode
       let states = stateTable.[(i, j)]
@@ -143,7 +147,7 @@ module Lattice =
         let to_k_up = stateFunc (i, j) currentState (j+1)
         this.SetStateValue (i+1, j+1, to_k_up) 0.0
         let to_k_down = stateFunc (i, j) currentState j
-        this.SetStateValue (i+1, j, to_k_down) 0.0
+        this.SetStateValue (i+1, j-1, to_k_down) 0.0
      
   let fromIndex n =
     let i = ceil (sqrt (2.0 * float n + 2.25) - 1.5)
