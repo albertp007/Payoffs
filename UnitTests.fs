@@ -107,6 +107,27 @@ module UnitTests =
                   (americanValue optType' k)
     price |> should (equalWithin 0.05) 7.47
 
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 3)>]
+  let ``Binomial forward shooting grid states``(s0, r, q, v, t, n) =
+    let tree = Binomial(s0, r, q, v, t, n)
+    tree.BuildFSG americanLookbackCallState
+    tree.StateValues |> should haveCount 13
+    tree.StateValues.Keys |> should contain (0,0,0)
+    tree.StateValues.Keys |> should contain (1,1,1)
+    tree.StateValues.Keys |> should contain (1,-1,0)
+    tree.StateValues.Keys |> should contain (2,0,0)
+    tree.StateValues.Keys |> should contain (2,0,1)
+    tree.StateValues.Keys |> should contain (2,-2,0)
+    tree.StateValues.Keys |> should contain (2,2,2)
+    tree.StateValues.Keys |> should contain (3,-3,0)
+    tree.StateValues.Keys |> should contain (3,3,3)
+    tree.StateValues.Keys |> should contain (3,-1,0)
+    tree.StateValues.Keys |> should contain (3,-1,1)
+    tree.StateValues.Keys |> should contain (3,1,2)
+    tree.StateValues.Keys |> should contain (3,1,1)
+
+    
+
               
 
 

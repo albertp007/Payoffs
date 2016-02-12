@@ -134,20 +134,31 @@ module Lattice =
       terminalFunc |> this.SetTerminal
       nodeValueFunc |> this.InduceBackward
       this.GetValue (0, 0)
-
-    member this.ForwardFrom stateFunc (i, j) =
+    
+    member this.CalcAssetPrice (i, j) =
       let (up, _, _) = this.GetProbabilities()
       let nodeAssetPrice = Binomial.NodeAssetPrice s0 up (1.0/up)
+      nodeAssetPrice this (i, j)
+
+    member this.CalcForwardStates stateFunc (i, j) =
+      seq { for current in stateTable.[(i, j)] do
+              yield (i+1, j+1, stateFunc (i, j) current (j+1))
+              yield (i+1, j-1, stateFunc (i, j) current (j-1))
+      }
+
+    member this.ForwardFrom stateFunc (i, j) =
       let upNode = (i+1, j+1)
       let downNode = (i+1, j-1)
-      this.SetAssetPrice upNode <| nodeAssetPrice this upNode
-      this.SetAssetPrice downNode <| nodeAssetPrice this downNode
+      this.SetAssetPrice upNode <| this.CalcAssetPrice upNode
+      this.SetAssetPrice downNode <| this.CalcAssetPrice downNode
       let states = stateTable.[(i, j)]
-      for currentState in states do
-        let to_k_up = stateFunc (i, j) currentState (j+1)
-        this.SetStateValue (i+1, j+1, to_k_up) 0.0
-        let to_k_down = stateFunc (i, j) currentState j
-        this.SetStateValue (i+1, j-1, to_k_down) 0.0
+      this.CalcForwardStates stateFunc (i, j)
+      |> Seq.iter (fun (i, j, k) -> this.SetStateValue (i, j, k) 0.0)
+
+    member this.BuildFSG stateFunc =
+      this.SetAssetPrice (0, 0) s0
+      this.SetStateValue (0, 0, 0) 0.0
+      Binomial.IterRange [0..(this.Period-1)] <| this.ForwardFrom stateFunc
      
   let fromIndex n =
     let i = ceil (sqrt (2.0 * float n + 2.25) - 1.5)
@@ -169,3 +180,6 @@ module Lattice =
       let current = tree.GetAssetPrice(i, j)
       let intrinsic = tree.GetIntrinsic optType strike (i, j)
       max intrinsic induced
+
+  let americanLookbackCallState (i, j) k to_j =
+    max k to_j
