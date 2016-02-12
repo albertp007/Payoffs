@@ -159,13 +159,6 @@ module Lattice =
       let intrinsic = tree.GetIntrinsic optType strike (i, j)
       max 0.0 intrinsic
 
-  let terminal optType strike = 
-    fun (tree:Binomial) (i, j) ->
-      let intrinsic = tree.GetAssetPrice (i, j) - strike
-      match optType with 
-      | Call -> max 0.0 intrinsic
-      | Put -> max 0.0 (-intrinsic)
-
   let europeanValue =
     fun (tree:Binomial) (i, j) ->
       tree.GetInducedValue(i, j)
