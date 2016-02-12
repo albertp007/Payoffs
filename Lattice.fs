@@ -29,7 +29,8 @@ module Lattice =
     let numNodes = (period+1)*(period+2)/2
     let assetPrices = Array.init numNodes (fun _ -> 0.0)
     let values = Array.init numNodes (fun _ -> 0.0)
-    let states = Dictionary<int*int*int, float>()
+    let stateValues = Dictionary<int*int*int, float>()
+    let stateTable = MultiValueDictionary<int*int, int>()
     let dt = t / float period
   with
     static member IterRange range f =
@@ -44,7 +45,9 @@ module Lattice =
 
     member this.Values = values
 
-    member this.States = states
+    member this.StateValues = stateValues
+
+    member this.StateTable = stateTable
 
     member this.Period = period
 
@@ -67,16 +70,21 @@ module Lattice =
     member this.GetAssetPrice (i, j) = assetPrices.[this.ToIndex(i, j)]
 
     member this.GetState (i, j, k) = 
-      if states.ContainsKey (i, j, k) then Some states.[(i, j, k)] else None
+      if stateValues.ContainsKey (i, j, k) then 
+        Some stateValues.[(i, j, k)] 
+      else None
 
     member this.SetValue (i, j) value = values.[this.ToIndex(i, j)] <- value
 
     member this.SetAssetPrice (i, j) price =
       assetPrices.[this.ToIndex(i, j)] <- price
 
-    member this.SetState (i, j, k) state =
-      if states.ContainsKey(i, j, k) then states.[(i, j, k)] <- state
-      else states.Add ((i, j, k), state)
+    member this.SetStateValue (i, j, k) value =
+      if stateValues.ContainsKey(i, j, k) then 
+        stateValues.[(i, j, k)] <- value
+      else 
+        stateValues.Add ((i, j, k), value)
+        stateTable.Add ((i, j), k)
 
     member this.SetAssetPrices f =
       Binomial.IterRange [0..this.Period] (fun (i, j) -> 
@@ -122,6 +130,20 @@ module Lattice =
       terminalFunc |> this.SetTerminal
       nodeValueFunc |> this.InduceBackward
       this.GetValue (0, 0)
+
+    member this.ForwardFrom stateFunc (i, j) =
+      let (up, _, _) = this.GetProbabilities()
+      let nodeAssetPrice = Binomial.NodeAssetPrice s0 up (1.0/up)
+      let upNode = (i+1, j+1)
+      let downNode = (i+1, j)
+      this.SetAssetPrice upNode <| nodeAssetPrice this upNode
+      this.SetAssetPrice downNode <| nodeAssetPrice this downNode
+      let states = stateTable.[(i, j)]
+      for currentState in states do
+        let to_k_up = stateFunc (i, j) currentState (j+1)
+        this.SetStateValue (i+1, j+1, to_k_up) 0.0
+        let to_k_down = stateFunc (i, j) currentState j
+        this.SetStateValue (i+1, j, to_k_down) 0.0
      
   let fromIndex n =
     let i = ceil (sqrt (2.0 * float n + 2.25) - 1.5)
