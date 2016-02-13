@@ -29,8 +29,8 @@ module Lattice =
     let numNodes = (period+1)*(period+2)/2
     let assetPrices = Array.init numNodes (fun _ -> 0.0)
     let values = Array.init numNodes (fun _ -> 0.0)
-    let stateValues = Dictionary<int*int*int, float>()
-    let stateTable = MultiValueDictionary<int*int, int>()
+    let stateValues = Array.init numNodes (fun _ -> Dictionary<int, float>())
+    let stateTable = Array.init numNodes (fun _ -> HashSet<int>())
     let dt = t / float period
   with
     static member IterRange range f =
@@ -74,8 +74,9 @@ module Lattice =
     member this.GetAssetPrice (i, j) = assetPrices.[this.ToIndex(i, j)]
 
     member this.GetState (i, j, k) = 
-      if stateValues.ContainsKey (i, j, k) then 
-        Some stateValues.[(i, j, k)] 
+      let values = stateValues.[this.ToIndex(i, j)]
+      if values.ContainsKey(k) then
+        Some values.[k] 
       else None
 
     member this.SetValue (i, j) value = values.[this.ToIndex(i, j)] <- value
@@ -84,11 +85,14 @@ module Lattice =
       assetPrices.[this.ToIndex(i, j)] <- price
 
     member this.SetStateValue (i, j, k) value =
-      if stateValues.ContainsKey(i, j, k) then 
-        stateValues.[(i, j, k)] <- value
+      let n = this.ToIndex(i, j)
+      let values = stateValues.[n]
+      let states = stateTable.[n]
+      if values.ContainsKey(k) then 
+        values.[k] <- value
       else 
-        stateValues.Add ((i, j, k), value)
-        stateTable.Add ((i, j), k)
+        values.Add (k, value)
+        states.Add (k) |> ignore
 
     member this.SetAssetPrices f =
       Binomial.IterRange [0..this.Period] (fun (i, j) -> 
@@ -141,7 +145,7 @@ module Lattice =
       nodeAssetPrice this (i, j)
 
     member this.CalcForwardStates stateFunc (i, j) =
-      seq { for current in stateTable.[(i, j)] do
+      seq { for current in stateTable.[this.ToIndex(i, j)] do
               yield (i+1, j+1, stateFunc (i, j) current (j+1))
               yield (i+1, j-1, stateFunc (i, j) current (j-1))
       }
@@ -151,7 +155,7 @@ module Lattice =
       let downNode = (i+1, j-1)
       this.SetAssetPrice upNode <| this.CalcAssetPrice upNode
       this.SetAssetPrice downNode <| this.CalcAssetPrice downNode
-      let states = stateTable.[(i, j)]
+      let states = stateTable.[this.ToIndex(i, j)]
       this.CalcForwardStates stateFunc (i, j)
       |> Seq.iter (fun (i, j, k) -> this.SetStateValue (i, j, k) 0.0)
 

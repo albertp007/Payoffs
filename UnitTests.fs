@@ -28,6 +28,7 @@ module UnitTests =
   open Payoffs.MC
   open Payoffs.Lattice
   open MathNet.Numerics.Statistics
+  open System.Collections.Generic
 
   [<TestCase(0.0, 1.0, 1000000)>]
   let ``Draw samples from normal distribution``(mu, sigma, size) =
@@ -92,39 +93,44 @@ module UnitTests =
     tree.BuildGrid()
     tree.GetIntrinsic optType' k (0, 0) |> should (equalWithin 0.01) expected
 
-  [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, 5000, 0, 100.0)>]
+  [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, 2000, 0, 100.0)>]
   let ``Binomial class european option``(s0, r, q, v, t, n, optType, k) =
     let optType' = if optType = 0 then Call else Put    
     let tree = Binomial(s0, r, q, v, t, n)
     let price = tree.Price (vanillaPayoff optType' k) europeanValue
-    price |> should (equalWithin 0.05) 8.19775
+    price |> should (equalWithin 0.01) 8.19775
 
-  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5000, 1, 52.0)>]
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 2000, 1, 52.0)>]
   let ``Binomial class american option``(s0, r, q, v, t, n, optType, k) =
     let optType' = if optType = 0 then Call else Put    
     let tree = Binomial(s0, r, q, v, t, n)
     let price = tree.Price (vanillaPayoff optType' k) 
                   (americanValue optType' k)
-    price |> should (equalWithin 0.05) 7.47
+    price |> should (equalWithin 0.01) 7.47
 
   [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 3)>]
-  let ``Binomial forward shooting grid states``(s0, r, q, v, t, n) =
+  let ``Binomial forward shooting grid states``(s0, r, q, v, t, n) =      
     let tree = Binomial(s0, r, q, v, t, n)
+    let containsKey (table:HashSet<int>[]) (i, j, k) =
+      table.[tree.ToIndex(i, j)].Contains(k)
+    let numItems (table:HashSet<int>[]) =
+      Array.fold (fun count (set:HashSet<int>) -> count + set.Count) 0 table
     tree.BuildFSG americanLookbackCallState
-    tree.StateValues |> should haveCount 13
-    tree.StateValues.Keys |> should contain (0,0,0)
-    tree.StateValues.Keys |> should contain (1,1,1)
-    tree.StateValues.Keys |> should contain (1,-1,0)
-    tree.StateValues.Keys |> should contain (2,0,0)
-    tree.StateValues.Keys |> should contain (2,0,1)
-    tree.StateValues.Keys |> should contain (2,-2,0)
-    tree.StateValues.Keys |> should contain (2,2,2)
-    tree.StateValues.Keys |> should contain (3,-3,0)
-    tree.StateValues.Keys |> should contain (3,3,3)
-    tree.StateValues.Keys |> should contain (3,-1,0)
-    tree.StateValues.Keys |> should contain (3,-1,1)
-    tree.StateValues.Keys |> should contain (3,1,2)
-    tree.StateValues.Keys |> should contain (3,1,1)
+    
+    numItems tree.StateTable |> should equal 13
+    containsKey tree.StateTable (0,0,0) |> should equal true
+    containsKey tree.StateTable (1,1,1) |> should equal true
+    containsKey tree.StateTable (1,-1,0) |> should equal true
+    containsKey tree.StateTable (2,0,0) |> should equal true
+    containsKey tree.StateTable (2,0,1) |> should equal true
+    containsKey tree.StateTable (2,-2,0) |> should equal true
+    containsKey tree.StateTable (2,2,2) |> should equal true
+    containsKey tree.StateTable (3,-3,0) |> should equal true
+    containsKey tree.StateTable (3,3,3) |> should equal true
+    containsKey tree.StateTable (3,-1,0) |> should equal true
+    containsKey tree.StateTable (3,-1,1) |> should equal true
+    containsKey tree.StateTable (3,1,2) |> should equal true
+    containsKey tree.StateTable (3,1,1) |> should equal true
 
     
 
