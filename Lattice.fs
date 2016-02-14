@@ -28,15 +28,21 @@ module Lattice =
   type Binomial(s0, r, q, v, t, period) =
     let numNodes = (period+1)*(period+2)/2
     let assetPrices = Array.init numNodes (fun _ -> 0.0)
-    let values = Array.init numNodes (fun _ -> 0.0)
+    // let values = Array.init numNodes (fun _ -> 0.0)
     let stateValues = Array.init numNodes (fun _ -> Dictionary<int, float>())
-    let stateTable = Array.init numNodes (fun _ -> HashSet<int>())
     let dt = t / float period
+    let u = v * sqrt dt
+
   with
     static member IterRange range f =
       for i in range do
         for j in (-i)..(2)..i do
           f (i, int j)
+
+    static member IterRange1 range f =
+      for i in range do
+        for j in 0..i do
+          f (i, -i + 2*j)
 
     static member NodeAssetPrice s0 up down =
       fun _ (i, j) -> 
@@ -45,23 +51,20 @@ module Lattice =
 
     member this.AssetPrices = assetPrices
 
-    member this.Values = values
+    // member this.Values = values
 
     member this.StateValues = stateValues
-
-    member this.StateTable = stateTable
 
     member this.Period = period
 
     member this.InitialAssetPrice = s0
 
-    member this.r = r
+    member this.Up = exp (u)
 
-    member this.q = q
+    member this.Prob = 
+      (exp ((r-q)*dt) - exp(-u))/(exp (u) - exp (-u))
 
-    member this.v = v
-
-    member this.t = t
+    member this.Discount = exp (-r*dt)
 
     member this.NumNodes = numNodes
 
@@ -69,51 +72,52 @@ module Lattice =
       // i * (i+1) /2 + (i + j)/2
       (i*i + 2*i + j)/2
 
-    member this.GetValue (i, j) = values.[this.ToIndex(i,j)]
+    // member this.GetValue (i, j) = values.[this.ToIndex(i,j)]
 
     member this.GetAssetPrice (i, j) = assetPrices.[this.ToIndex(i, j)]
 
-    member this.GetState (i, j, k) = 
-      let values = stateValues.[this.ToIndex(i, j)]
-      if values.ContainsKey(k) then
-        Some values.[k] 
-      else None
+    member this.GetStateValue (i, j, k) = stateValues.[this.ToIndex(i, j)].[k]
+      // let values = stateValues.[this.ToIndex(i, j)]
+      // if values.ContainsKey(k) then
+      //  Some values.[k] 
+      // else None
 
-    member this.SetValue (i, j) value = values.[this.ToIndex(i, j)] <- value
+    // member this.SetValue (i, j) value = values.[this.ToIndex(i, j)] <- value
+
+    member this.GetStates (i, j) =
+      stateValues.[this.ToIndex(i, j)]
 
     member this.SetAssetPrice (i, j) price =
       assetPrices.[this.ToIndex(i, j)] <- price
 
     member this.SetStateValue (i, j, k) value =
-      let n = this.ToIndex(i, j)
-      let values = stateValues.[n]
-      let states = stateTable.[n]
+      let values = stateValues.[this.ToIndex(i,j)]
       if values.ContainsKey(k) then 
         values.[k] <- value
       else 
         values.Add (k, value)
-        states.Add (k) |> ignore
 
     member this.SetAssetPrices f =
       Binomial.IterRange [0..this.Period] (fun (i, j) -> 
         this.SetAssetPrice (i, j) (f this (i, j)))
 
-    member this.SetValues range f =
-      Binomial.IterRange range (fun (i, j) -> 
-        this.SetValue (i, j) (f this (i, j)))
+    // member this.SetValues range f =
+    //  Binomial.IterRange range (fun (i, j) -> 
+    //    this.SetValue (i, j) (f this (i, j)))
 
-    member this.GetProbabilities() =
-      let u = v * sqrt dt
-      let p = (exp ((r-q)*dt) - exp(-u))/(exp (u) - exp (-u))
-      let discount = exp (-r*dt)
-      (exp u, p, discount)
+    member this.SetStateValues range f =
+      let g (i, j) =
+        let stateTable = this.GetStates(i, j)
+        let keys = stateTable.Keys |> Seq.toList
+        List.iter (fun k-> stateTable.[k] <- f this (i, j, k)) keys
+      Binomial.IterRange range g
 
-    member this.GetInducedValue(i, j) =
-      let (_, p, discount) = this.GetProbabilities()
-      let upValue = this.GetValue (i+1, j+1)
-      let downValue = this.GetValue (i+1, j-1)
-      let (_, p, discount) = this.GetProbabilities()
-      (discount * (p*upValue + (1.0-p)*downValue))
+    member this.GetInducedValue stateFunc (i, j, k) =
+      let upK = stateFunc (i, j) k (j+1)
+      let downK = stateFunc (i, j) k (j-1)
+      let upValue = this.GetStateValue (i+1, j+1, upK)
+      let downValue = this.GetStateValue (i+1, j-1, downK)
+      (this.Discount * (this.Prob*upValue + (1.0-this.Prob)*downValue))
 
     member this.GetIntrinsic optType strike (i, j) =
       let intrinsic = this.GetAssetPrice(i, j) - strike
@@ -122,46 +126,38 @@ module Lattice =
       | Put -> (-intrinsic)
 
     member this.BuildGrid() = 
-      let (up, _, _) = this.GetProbabilities()
-      this.SetAssetPrices <| Binomial.NodeAssetPrice s0 up (1.0/up)
+      this.SetAssetPrices <| Binomial.NodeAssetPrice s0 this.Up (1.0/this.Up)
 
-    member this.SetTerminal terminalFunc =
+    member this.SetTerminal terminalFunc = 
       let n = this.Period
-      this.SetValues [n..n] terminalFunc
+      this.SetStateValues [n..n] terminalFunc
 
     member this.InduceBackward nodeValueFunc =
       let n = this.Period
-      this.SetValues [(n-1)..(-1)..0] nodeValueFunc
+      this.SetStateValues [(n-1)..(-1)..0] nodeValueFunc
     
-    member this.Price terminalFunc nodeValueFunc =
-      this.BuildGrid()
+    member this.Price stateFunc terminalFunc nodeValueFunc =
+      this.BuildFSG stateFunc
       terminalFunc |> this.SetTerminal
       nodeValueFunc |> this.InduceBackward
-      this.GetValue (0, 0)
+      this.GetStateValue (0, 0, 0)
     
-    member this.CalcAssetPrice (i, j) =
-      let (up, _, _) = this.GetProbabilities()
-      let nodeAssetPrice = Binomial.NodeAssetPrice s0 up (1.0/up)
+    member this.CalcAssetPrice (tree, i, j) =
+      let nodeAssetPrice = Binomial.NodeAssetPrice s0 this.Up (1.0/this.Up)
       nodeAssetPrice this (i, j)
-
-    member this.CalcForwardStates stateFunc (i, j) =
-      seq { for current in stateTable.[this.ToIndex(i, j)] do
-              yield (i+1, j+1, stateFunc (i, j) current (j+1))
-              yield (i+1, j-1, stateFunc (i, j) current (j-1))
-      }
 
     member this.ForwardFrom stateFunc (i, j) =
       let upNode = (i+1, j+1)
       let downNode = (i+1, j-1)
-      this.SetAssetPrice upNode <| this.CalcAssetPrice upNode
-      this.SetAssetPrice downNode <| this.CalcAssetPrice downNode
-      let states = stateTable.[this.ToIndex(i, j)]
-      this.CalcForwardStates stateFunc (i, j)
-      |> Seq.iter (fun (i, j, k) -> this.SetStateValue (i, j, k) 0.0)
+      let states = this.StateValues.[this.ToIndex(i,j)].Keys
+      for k in states do
+        this.SetStateValue (i+1, j+1, stateFunc (i, j) k (j+1)) 0.0
+        this.SetStateValue (i+1, j-1, stateFunc (i, j) k (j-1)) 0.0
 
     member this.BuildFSG stateFunc =
       this.SetAssetPrice (0, 0) s0
       this.SetStateValue (0, 0, 0) 0.0
+      this.SetAssetPrices <| Binomial.NodeAssetPrice s0 this.Up (1.0/this.Up)
       Binomial.IterRange [0..(this.Period-1)] <| this.ForwardFrom stateFunc
      
   let fromIndex n =
@@ -170,17 +166,19 @@ module Lattice =
     (int i, j)
 
   let vanillaPayoff optType strike = 
-    fun (tree:Binomial) (i, j) ->
+    fun (tree:Binomial) (i, j, k) ->
       let intrinsic = tree.GetIntrinsic optType strike (i, j)
       max 0.0 intrinsic
 
+  let vanillaStateFunc (i, j) k to_j = 0
+
   let europeanValue =
-    fun (tree:Binomial) (i, j) ->
-      tree.GetInducedValue(i, j)
+    fun (tree:Binomial) (i, j, k) ->
+      tree.GetInducedValue vanillaStateFunc (i, j, k)
 
   let americanValue optType strike =
-    fun (tree:Binomial) (i, j) ->
-      let induced = tree.GetInducedValue(i, j)
+    fun (tree:Binomial) (i, j, k) ->
+      let induced = tree.GetInducedValue vanillaStateFunc (i, j, k)
       let current = tree.GetAssetPrice(i, j)
       let intrinsic = tree.GetIntrinsic optType strike (i, j)
       max intrinsic induced

@@ -64,8 +64,7 @@ module UnitTests =
     let dt = t / float n
     let expected = exp ( v * sqrt dt) 
     let tree = Binomial(s0, r, q, v, t, n)
-    let (u, _, _ ) = tree.GetProbabilities()
-    u |> should equal expected
+    tree.Up |> should equal expected
 
   [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, 1, 52.0, 0, 0)>]
   [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 3, 1, 48.0, 2, 0)>]
@@ -73,9 +72,8 @@ module UnitTests =
   [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 2, 0, 48.0, 2, 0)>]
   let ``Binomial GetAssetPrice``(s0, r, q, v, t, n, optType, k, i, j) =
     let tree = Binomial(s0, r, q, v, t, n)
-    let (u, _, _) = tree.GetProbabilities()
-    let d = 1.0/u
-    let factor = if j > 0 then u else d
+    let d = 1.0/tree.Up
+    let factor = if j > 0 then tree.Up else d
     let expected = s0 * (factor ** float (abs j))
     tree.BuildGrid()
     tree.GetAssetPrice (i, j) |> should (equalWithin 0.01) expected
@@ -97,40 +95,42 @@ module UnitTests =
   let ``Binomial class european option``(s0, r, q, v, t, n, optType, k) =
     let optType' = if optType = 0 then Call else Put    
     let tree = Binomial(s0, r, q, v, t, n)
-    let price = tree.Price (vanillaPayoff optType' k) europeanValue
+    let price = tree.Price vanillaStateFunc (vanillaPayoff optType' k) 
+                  europeanValue
     price |> should (equalWithin 0.01) 8.19775
 
   [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 2000, 1, 52.0)>]
   let ``Binomial class american option``(s0, r, q, v, t, n, optType, k) =
     let optType' = if optType = 0 then Call else Put    
     let tree = Binomial(s0, r, q, v, t, n)
-    let price = tree.Price (vanillaPayoff optType' k) 
+    let price = tree.Price vanillaStateFunc (vanillaPayoff optType' k) 
                   (americanValue optType' k)
     price |> should (equalWithin 0.01) 7.47
 
   [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 3)>]
   let ``Binomial forward shooting grid states``(s0, r, q, v, t, n) =      
     let tree = Binomial(s0, r, q, v, t, n)
-    let containsKey (table:HashSet<int>[]) (i, j, k) =
-      table.[tree.ToIndex(i, j)].Contains(k)
-    let numItems (table:HashSet<int>[]) =
-      Array.fold (fun count (set:HashSet<int>) -> count + set.Count) 0 table
+    let containsKey (tables:Dictionary<int, float>[]) (i, j, k) =
+      tables.[tree.ToIndex(i, j)].ContainsKey(k)
+    let numItems (tables:Dictionary<int,float>[]) =
+      Array.fold (fun count (table:Dictionary<int,float>) -> 
+                    count + table.Count) 0 tables
     tree.BuildFSG americanLookbackCallState
     
-    numItems tree.StateTable |> should equal 13
-    containsKey tree.StateTable (0,0,0) |> should equal true
-    containsKey tree.StateTable (1,1,1) |> should equal true
-    containsKey tree.StateTable (1,-1,0) |> should equal true
-    containsKey tree.StateTable (2,0,0) |> should equal true
-    containsKey tree.StateTable (2,0,1) |> should equal true
-    containsKey tree.StateTable (2,-2,0) |> should equal true
-    containsKey tree.StateTable (2,2,2) |> should equal true
-    containsKey tree.StateTable (3,-3,0) |> should equal true
-    containsKey tree.StateTable (3,3,3) |> should equal true
-    containsKey tree.StateTable (3,-1,0) |> should equal true
-    containsKey tree.StateTable (3,-1,1) |> should equal true
-    containsKey tree.StateTable (3,1,2) |> should equal true
-    containsKey tree.StateTable (3,1,1) |> should equal true
+    numItems tree.StateValues |> should equal 13
+    containsKey tree.StateValues (0,0,0) |> should equal true
+    containsKey tree.StateValues (1,1,1) |> should equal true
+    containsKey tree.StateValues (1,-1,0) |> should equal true
+    containsKey tree.StateValues (2,0,0) |> should equal true
+    containsKey tree.StateValues (2,0,1) |> should equal true
+    containsKey tree.StateValues (2,-2,0) |> should equal true
+    containsKey tree.StateValues (2,2,2) |> should equal true
+    containsKey tree.StateValues (3,-3,0) |> should equal true
+    containsKey tree.StateValues (3,3,3) |> should equal true
+    containsKey tree.StateValues (3,-1,0) |> should equal true
+    containsKey tree.StateValues (3,-1,1) |> should equal true
+    containsKey tree.StateValues (3,1,2) |> should equal true
+    containsKey tree.StateValues (3,1,1) |> should equal true
 
     
 
