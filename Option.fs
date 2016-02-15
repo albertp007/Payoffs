@@ -20,9 +20,34 @@
 //
 namespace Payoffs
 
+open MathNet.Numerics.Distributions
+
 module Option =
 
   type OptionType =
   | Call
   | Put
+
+  let blackScholes s0 r q v t optType k =
+    let f = s0 * exp( (r-q) * t )
+    let d1 = 1.0 / v / (sqrt t) * (log (s0/k) + (r-q+0.5*v*v)*t)
+    let d2 = d1 - v*(sqrt t)
+    let n x = Normal.CDF(0.0, 1.0, x)
+    match optType with
+    | Call -> exp(-r*t)*(f*n(d1)-k*n(d2))
+    | Put -> exp(-r*t)*(k*n(-d2)-f*n(-d1))
+
+  let impliedVolatility precision maxIteration s0 r q t k optType p =
+    // Newton-Raphson
+    let bs v = blackScholes s0 r q v t optType k
+    let v0 = sqrt( 2.0*System.Math.PI/t) * p / s0
+    let vega v = 
+      let d1 = 1.0 / v / (sqrt t) * (log (s0/k) + (r-q+0.5*v*v)*t)
+      s0 * Normal.PDF(0.0, 1.0, d1) * sqrt t
+    let iv v = v - (bs(v)-p)/vega v
+    let rec iter (precision:float) maxIteration n f init =
+      let current = f init
+      if current - init < precision || n >= maxIteration then (current, n)
+      else iter precision maxIteration (n+1) f current
+    iter precision maxIteration 0 iv v0
 

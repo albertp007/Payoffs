@@ -30,6 +30,27 @@ module UnitTests =
   open MathNet.Numerics.Statistics
   open System.Collections.Generic
 
+  let toOptType isCall =
+    match isCall with
+    | true -> Call
+    | false -> Put
+
+  [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, 100.0)>]
+  let ``Black Scholes equation put-call parity``(s0, r, q, v, t, k) =
+    let call = blackScholes s0 r q v t Call k
+    let put = blackScholes s0 r q v t Put k
+    put + s0 |> should (equalWithin 0.0001) (call + k*exp(-r*t))
+
+  [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, 100.0, 8.19755391)>]
+  [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, false, 100.0, 7.69880183)>]
+  let ``European Implied Volatility``(s0, r, q, v, t, isCall, k, price) =
+    let precision = 0.0001
+    let maxIter = 100
+    let optType = toOptType isCall
+    let price' = blackScholes s0 r q v t optType k
+    let (v', _) = impliedVolatility precision maxIter s0 r q t k optType price
+    v' |> should (equalWithin precision) v
+
   [<TestCase(0.0, 1.0, 1000000)>]
   let ``Draw samples from normal distribution``(mu, sigma, size) =
     let draw = drawNormal mu sigma size
@@ -43,7 +64,9 @@ module UnitTests =
       gbm r sigma s0 t n ATV
       |> genPaths m 
       |> mc (MC.european Call s0 |> discountedPayoff r t)
-    estimate |> should (equalWithin (2.0*std)) 8.19755
+    let q = 0.0
+    let expected = blackScholes s0 r q sigma t Call s0
+    estimate |> should (equalWithin (2.0*std)) expected
 
   [<TestCase(0.02, 0.4, 100.0, 0.25, 1, 5000000)>]
   let ``MC european call option without variance reduction``(r, sigma, s0, t, n, m) =
@@ -51,7 +74,9 @@ module UnitTests =
       gbm r sigma s0 t n None
       |> genPaths m 
       |> mc (MC.european Call s0 |> discountedPayoff r t)
-    estimate |> should (equalWithin (2.0*std)) 8.19755
+    let q = 0.0
+    let expected = blackScholes s0 r q sigma t Call s0
+    estimate |> should (equalWithin (2.0*std)) expected
 
   [<TestCase(50.0, 0.05, 0.0, 0.4, 0.25, 5000)>]
   let ``Binomial - number of nodes``(s0, r, q, v, t, n) =
@@ -78,12 +103,12 @@ module UnitTests =
     tree.BuildGrid()
     tree.GetAssetPrice (i, j) |> should (equalWithin 0.01) expected
 
-  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, 1, 52.0)>]
-  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, 1, 48.0)>]
-  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, 0, 52.0)>]
-  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, 0, 48.0)>]
-  let ``Binomial GetIntrinsic``(s0, r, q, v, t, n, optType, k) =
-    let optType' = if optType = 0 then Call else Put
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, false, 52.0)>]
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, false, 48.0)>]
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, true, 52.0)>]
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, true, 48.0)>]
+  let ``Binomial GetIntrinsic``(s0, r, q, v, t, n, isCall, k) =
+    let optType' = toOptType isCall
     let expected = match optType' with
                    | Call -> s0 - k
                    | Put -> k - s0   
@@ -91,17 +116,18 @@ module UnitTests =
     tree.BuildGrid()
     tree.GetIntrinsic optType' k (0, 0) |> should (equalWithin 0.01) expected
 
-  [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, 2000, 0, 100.0)>]
-  let ``Binomial class european option``(s0, r, q, v, t, n, optType, k) =
-    let optType' = if optType = 0 then Call else Put    
+  [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, 2000, true, 100.0)>]
+  let ``Binomial class european option``(s0, r, q, v, t, n, isCall, k) =
+    let optType' = toOptType isCall
     let tree = Binomial(s0, r, q, v, t, n)
     let price = tree.Price vanillaStateFunc (vanillaPayoff optType' k) 
                   europeanValue
-    price |> should (equalWithin 0.01) 8.19775
+    let expected = blackScholes s0 r q v t Call s0
+    price |> should (equalWithin 0.01) expected
 
-  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 2000, 1, 52.0)>]
-  let ``Binomial class american option``(s0, r, q, v, t, n, optType, k) =
-    let optType' = if optType = 0 then Call else Put    
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 2000, false, 52.0)>]
+  let ``Binomial class american option``(s0, r, q, v, t, n, isCall, k) =
+    let optType' = toOptType isCall
     let tree = Binomial(s0, r, q, v, t, n)
     let price = tree.Price vanillaStateFunc (vanillaPayoff optType' k) 
                   (americanValue optType' k)
