@@ -36,13 +36,8 @@ module Lattice =
   with
     static member IterRange range f =
       for i in range do
-        for j in (-i)..(2)..i do
+        for j in [(-i)..(2)..i] do
           f (i, int j)
-
-    static member IterRange1 range f =
-      for i in range do
-        for j in 0..i do
-          f (i, -i + 2*j)
 
     static member NodeAssetPrice s0 up down =
       fun _ (i, j) -> 
@@ -77,10 +72,6 @@ module Lattice =
     member this.GetAssetPrice (i, j) = assetPrices.[this.ToIndex(i, j)]
 
     member this.GetStateValue (i, j, k) = stateValues.[this.ToIndex(i, j)].[k]
-      // let values = stateValues.[this.ToIndex(i, j)]
-      // if values.ContainsKey(k) then
-      //  Some values.[k] 
-      // else None
 
     // member this.SetValue (i, j) value = values.[this.ToIndex(i, j)] <- value
 
