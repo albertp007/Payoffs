@@ -183,5 +183,20 @@ module Lattice =
       let intrinsic = tree.GetIntrinsic optType strike (i, j)
       max intrinsic induced
 
-  let americanLookbackCallState (i, j) k to_j =
+  let americanLookbackPutState (i, j) k to_j =
     max k to_j
+
+  let americanLookbackPutStatePrice (tree:Binomial) state =
+    let factor = if ( state > 0 ) then tree.Up else 1.0/tree.Up
+    tree.InitialAssetPrice * (factor ** float state)
+
+  let americanLookbackPutPayoff (tree:Binomial) (i, j, k) =
+    let nodePrice = tree.GetAssetPrice(i, j)
+    let maxPrice = americanLookbackPutStatePrice tree k
+    max 0.0 (maxPrice - nodePrice)
+
+  let americanLookbackPutValue (tree:Binomial) (i, j, k) =
+    let induced = tree.GetInducedValue americanLookbackPutState (i, j, k)
+    let assetPrice = tree.GetAssetPrice(i, j)
+    let maxPrice = americanLookbackPutStatePrice tree k
+    max induced (maxPrice-assetPrice)

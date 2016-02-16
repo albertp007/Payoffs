@@ -141,22 +141,20 @@ module UnitTests =
     let numItems (tables:Dictionary<int,float>[]) =
       Array.fold (fun count (table:Dictionary<int,float>) -> 
                     count + table.Count) 0 tables
-    tree.BuildFSG americanLookbackCallState
-    
+    tree.BuildFSG americanLookbackPutState
     numItems tree.StateValues |> should equal 13
-    containsKey tree.StateValues (0,0,0) |> should equal true
-    containsKey tree.StateValues (1,1,1) |> should equal true
-    containsKey tree.StateValues (1,-1,0) |> should equal true
-    containsKey tree.StateValues (2,0,0) |> should equal true
-    containsKey tree.StateValues (2,0,1) |> should equal true
-    containsKey tree.StateValues (2,-2,0) |> should equal true
-    containsKey tree.StateValues (2,2,2) |> should equal true
-    containsKey tree.StateValues (3,-3,0) |> should equal true
-    containsKey tree.StateValues (3,3,3) |> should equal true
-    containsKey tree.StateValues (3,-1,0) |> should equal true
-    containsKey tree.StateValues (3,-1,1) |> should equal true
-    containsKey tree.StateValues (3,1,2) |> should equal true
-    containsKey tree.StateValues (3,1,1) |> should equal true
+    let correctStates = [(0,0,0); (1,1,1); (1,-1,0); (2,0,0); (2,0,1); (2,-2,0)
+                         (2,2,2); (3,-3,0); (3,3,3); (3,-1,0); (3,-1,1); (3,1,2)
+                         (3,1,1)]
+    List.forall (fun state -> containsKey tree.StateValues state) correctStates
+    |> should equal true
+
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 3)>]
+  let ``Binomial Lookback Put``(s0, r, q, v, t, n) =      
+    let tree = Binomial(s0, r, q, v, t, n)
+    let price = tree.Price americanLookbackPutState americanLookbackPutPayoff
+                  americanLookbackPutValue
+    price |> should (equalWithin 0.01) 5.47
 
     
 
