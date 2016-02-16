@@ -1,7 +1,8 @@
 ﻿module Main
 
-open Payoffs.Lattice
 open Payoffs.Option
+open Payoffs.Lattice
+open Payoffs.Product.Lattice
 
 [<EntryPoint>]
 let main argv = 

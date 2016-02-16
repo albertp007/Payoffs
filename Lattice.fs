@@ -44,6 +44,11 @@ module Lattice =
         let (factor, j') = (if j > 0 then up, float j else down, float (-j))
         s0 * (factor ** j')
 
+    static member FromIndex n =
+      let i = ceil (sqrt (2.0 * float n + 2.25) - 1.5)
+      let j = n - int (0.5*i*(i+1.0))
+      (int i, j)
+
     member this.AssetPrices = assetPrices
 
     // member this.Values = values
@@ -151,43 +156,3 @@ module Lattice =
       this.SetAssetPrices <| Binomial.NodeAssetPrice s0 this.Up (1.0/this.Up)
       Binomial.IterRange [0..(this.Period-1)] <| this.ForwardFrom stateFunc
      
-  let fromIndex n =
-    let i = ceil (sqrt (2.0 * float n + 2.25) - 1.5)
-    let j = n - int (0.5*i*(i+1.0))
-    (int i, j)
-
-  let vanillaPayoff optType strike = 
-    fun (tree:Binomial) (i, j, k) ->
-      let intrinsic = tree.GetIntrinsic optType strike (i, j)
-      max 0.0 intrinsic
-
-  let vanillaStateFunc (i, j) k to_j = 0
-
-  let europeanValue =
-    fun (tree:Binomial) (i, j, k) ->
-      tree.GetInducedValue vanillaStateFunc (i, j, k)
-
-  let americanValue optType strike =
-    fun (tree:Binomial) (i, j, k) ->
-      let induced = tree.GetInducedValue vanillaStateFunc (i, j, k)
-      let current = tree.GetAssetPrice(i, j)
-      let intrinsic = tree.GetIntrinsic optType strike (i, j)
-      max intrinsic induced
-
-  let americanLookbackPutState (i, j) k to_j =
-    max k to_j
-
-  let americanLookbackPutStatePrice (tree:Binomial) state =
-    let factor = if ( state > 0 ) then tree.Up else 1.0/tree.Up
-    tree.InitialAssetPrice * (factor ** float state)
-
-  let americanLookbackPutPayoff (tree:Binomial) (i, j, k) =
-    let nodePrice = tree.GetAssetPrice(i, j)
-    let maxPrice = americanLookbackPutStatePrice tree k
-    max 0.0 (maxPrice - nodePrice)
-
-  let americanLookbackPutValue (tree:Binomial) (i, j, k) =
-    let induced = tree.GetInducedValue americanLookbackPutState (i, j, k)
-    let assetPrice = tree.GetAssetPrice(i, j)
-    let maxPrice = americanLookbackPutStatePrice tree k
-    max induced (maxPrice-assetPrice)

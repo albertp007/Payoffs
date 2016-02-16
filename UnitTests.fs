@@ -26,6 +26,7 @@ module UnitTests =
   open Payoffs.Option
   open Payoffs.MC
   open Payoffs.Lattice
+  open Payoffs.Product.Lattice
   open MathNet.Numerics.Statistics
   open System.Collections.Generic
   
@@ -154,7 +155,7 @@ module UnitTests =
       Array.fold 
         (fun count (table : Dictionary<int, float>) -> count + table.Count) 0 
         tables
-    tree.BuildFSG americanLookbackPutState
+    tree.BuildFSG lookbackPutState
     numItems tree.StateValues |> should equal 13
     let correctStates = 
       [ (0, 0, 0)
@@ -177,6 +178,5 @@ module UnitTests =
   let ``Binomial Lookback Put`` (s0, r, q, v, t, n) = 
     let tree = Binomial(s0, r, q, v, t, n)
     let price = 
-      tree.Price americanLookbackPutState americanLookbackPutPayoff 
-        americanLookbackPutValue
+      tree.Price lookbackPutState lookbackPutPayoff (lookbackPutValue American)
     price |> should (equalWithin 0.01) 5.47

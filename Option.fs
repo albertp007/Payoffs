@@ -28,6 +28,10 @@ module Option =
   | Call
   | Put
 
+  type ExerciseType =
+  | European
+  | American
+
   let blackScholes s0 r q v t optType k =
     let f = s0 * exp( (r-q) * t )
     let d1 = 1.0 / v / (sqrt t) * (log (s0/k) + (r-q+0.5*v*v)*t)
