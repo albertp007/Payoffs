@@ -180,3 +180,11 @@ module UnitTests =
     let price = 
       tree.Price lookbackPutState lookbackPutPayoff (lookbackPutValue American)
     price |> should (equalWithin 0.01) 5.47
+
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, 1, 50.0, 60.0, 0.5844)>]
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, 0, 50.0, 60.0, 3.2292)>]
+  let ``Binomial Up-out Call``(s0, r, q, v, t, n, isCall, k, ko, expected) =
+    let tree = Binomial(s0, r, q, v, t, n)
+    let price = tree.Price (koState tree ko) (koPayoff (toOptType isCall) k) 
+                  (koValue tree)
+    price |> should (equalWithin 0.01) expected

@@ -26,6 +26,7 @@ module Product =
         max 0.0 intrinsic
     
     let vanillaStateFunc (i, j) k to_j = 0
+
     let europeanValue = 
       fun (tree : Binomial) (i, j, k) -> 
         tree.GetInducedValue vanillaStateFunc (i, j, k)
@@ -66,3 +67,20 @@ module Product =
           let nodePrice = tree.GetAssetPrice(i + 1, to_j)
           if nodePrice >= koPrice then 1
           else 0
+
+    let koPayoff optType strike =
+      fun (tree: Binomial) (i, j, k) ->
+        if k = 1 then 0.0
+        else
+          let intrinsic = tree.GetIntrinsic optType strike (i, j)
+          max 0.0 intrinsic
+    
+    let koValue (tree: Binomial) =
+      let stateFunc (i, j) k to_j =
+        if k = 1 then 1
+        else
+          let states = tree.GetStates(i+1, to_j)
+          if states.ContainsKey 0 then 0 else 1
+          
+      fun (tree:Binomial) (i, j, k) ->
+        tree.GetInducedValue stateFunc (i, j, k)
