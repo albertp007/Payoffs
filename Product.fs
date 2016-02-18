@@ -1,4 +1,5 @@
-﻿// This file is a part of Payoffs
+﻿
+// This file is a part of Payoffs
 //
 // Payoffs is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -60,12 +61,15 @@ module Product =
           let maxPrice = lookbackPutStatePrice tree k
           max induced (maxPrice - assetPrice)
     
-    let koState (tree : Binomial) koPrice = 
+    let koState direction (tree : Binomial) koPrice = 
+      let compOp = match direction with
+                   | Up -> (>=)
+                   | Down -> (<=)
       fun (i, j) k to_j -> 
         if k = 1 then 1
-        else 
+        else
           let nodePrice = tree.GetAssetPrice(i + 1, to_j)
-          if nodePrice >= koPrice then 1
+          if compOp nodePrice koPrice then 1
           else 0
 
     let koPayoff optType strike =

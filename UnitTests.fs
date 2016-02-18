@@ -35,6 +35,11 @@ module UnitTests =
     | true -> Call
     | false -> Put
   
+  let toUpDown isUp = 
+    match isUp with
+    | true -> Up
+    | false -> Down
+  
   [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, 100.0)>]
   let ``Black Scholes equation put-call parity`` (s0, r, q, v, t, k) = 
     let call = blackScholes s0 r q v t Call k
@@ -180,11 +185,14 @@ module UnitTests =
     let price = 
       tree.Price lookbackPutState lookbackPutPayoff (lookbackPutValue American)
     price |> should (equalWithin 0.01) 5.47
-
-  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, 1, 50.0, 60.0, 0.5844)>]
-  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, 0, 50.0, 60.0, 3.2292)>]
-  let ``Binomial Up-out Call``(s0, r, q, v, t, n, isCall, k, ko, expected) =
+  
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, true, true, 50.0, 60.0, 0.5844)>]
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, false, true, 50.0, 60.0, 3.2292)>]
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, true, false, 50.0, 40.0, 4.5392)>]  
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, false, false, 50.0, 40.0, 0.9471)>]
+  let ``Binomial Knockout`` (s0, r, q, v, t, n, isCall, isUp, k, ko, expected) = 
     let tree = Binomial(s0, r, q, v, t, n)
-    let price = tree.Price (koState tree ko) (koPayoff (toOptType isCall) k) 
-                  (koValue tree)
+    let price = 
+      tree.Price (koState (toUpDown isUp) tree ko) 
+        (koPayoff (toOptType isCall) k) (koValue tree)
     price |> should (equalWithin 0.01) expected
