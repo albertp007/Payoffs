@@ -1,4 +1,4 @@
-﻿
+﻿//
 // This file is a part of Payoffs
 //
 // Payoffs is free software: you can redistribute it and/or modify
