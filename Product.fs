@@ -60,31 +60,42 @@ module Product =
           let assetPrice = tree.GetAssetPrice(i, j)
           let maxPrice = lookbackPutStatePrice tree k
           max induced (maxPrice - assetPrice)
-    
-    let koState direction (tree : Binomial) koPrice = 
+
+    let barrierTrigger direction triggerPrice =
       let compOp = match direction with
                    | Up -> (>=)
                    | Down -> (<=)
+      fun assetPrice ->
+        compOp assetPrice triggerPrice
+
+    let barrierState direction (tree : Binomial) koPrice = 
+      let isTriggered = barrierTrigger direction koPrice
       fun (i, j) k to_j -> 
-        if k = 1 then 1
+        // state 1 - triggered
+        // state 0 - not triggered
+        if k = 1 then 1 // if already triggered, then continue to be triggered
         else
           let nodePrice = tree.GetAssetPrice(i + 1, to_j)
-          if compOp nodePrice koPrice then 1
-          else 0
+          if isTriggered nodePrice then 1 else 0
 
-    let koPayoff optType strike =
+    let barrierPayoff barrierType optType strike =
       fun (tree: Binomial) (i, j, k) ->
-        if k = 1 then 0.0
+        let isNoValue = 
+          match barrierType with
+          | In -> k = 0 // not triggered i.e. not knocked in
+          | Out -> k = 1 // triggered, i.e. knocked out
+        if isNoValue then 0.0
         else
           let intrinsic = tree.GetIntrinsic optType strike (i, j)
           max 0.0 intrinsic
     
-    let koValue (tree: Binomial) =
+    let barrierValue (tree: Binomial) =
       let stateFunc (i, j) k to_j =
         if k = 1 then 1
         else
           let states = tree.GetStates(i+1, to_j)
-          if states.ContainsKey 0 then 0 else 1
+          if states.ContainsKey 0 then 0 
+          else 1
           
       fun (tree:Binomial) (i, j, k) ->
         tree.GetInducedValue stateFunc (i, j, k)

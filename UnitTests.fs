@@ -39,6 +39,11 @@ module UnitTests =
     match isUp with
     | true -> Up
     | false -> Down
+
+  let toBarrierType isKI =
+    match isKI with
+    | true -> In
+    | false -> Out
   
   [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, 100.0)>]
   let ``Black Scholes equation put-call parity`` (s0, r, q, v, t, k) = 
@@ -186,13 +191,19 @@ module UnitTests =
       tree.Price lookbackPutState lookbackPutPayoff (lookbackPutValue American)
     price |> should (equalWithin 0.01) 5.47
   
-  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, true, true, 50.0, 60.0, 0.5844)>]
-  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, false, true, 50.0, 60.0, 3.2292)>]
-  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, true, false, 50.0, 40.0, 4.5392)>]  
-  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, false, false, 50.0, 40.0, 0.9471)>]
-  let ``Binomial Knockout`` (s0, r, q, v, t, n, isCall, isUp, k, ko, expected) = 
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, true, false, true, 50.0, 60.0, 0.5844)>]
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, true, false, false, 50.0, 60.0, 3.2292)>]
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, false, false, true, 50.0, 40.0, 4.5392)>]  
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, false, false, false, 50.0, 40.0, 0.9471)>]
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, true, true, true, 50.0, 60.0, 3.995996772)>]
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, true, true, false, 50.0, 60.0, 0.1167678526)>]
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, false, true, true, 50.0, 40.0, 0.04122001074)>]  
+  [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, false, true, false, 50.0, 40.0, 2.398845761)>]
+  let ``Binomial Knockout`` (s0, r, q, v, t, n, isUp, isKI, isCall, k, ko, 
+                             expected) = 
     let tree = Binomial(s0, r, q, v, t, n)
     let price = 
-      tree.Price (koState (toUpDown isUp) tree ko) 
-        (koPayoff (toOptType isCall) k) (koValue tree)
+      tree.Price (barrierState (toUpDown isUp) tree ko) 
+        (barrierPayoff (toBarrierType isKI) (toOptType isCall) k) 
+        (barrierValue tree)
     price |> should (equalWithin 0.01) expected
