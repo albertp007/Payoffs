@@ -199,7 +199,7 @@ module UnitTests =
   [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, true, true, false, 50.0, 60.0, 0.1167678526)>]
   [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, false, true, true, 50.0, 40.0, 0.04122001074)>]  
   [<TestCase(50.0, 0.1, 0.0, 0.4, 0.25, 1000, false, true, false, 50.0, 40.0, 2.398845761)>]
-  let ``Binomial Knockout`` (s0, r, q, v, t, n, isUp, isKI, isCall, k, ko, 
+  let ``Binomial Barrier`` (s0, r, q, v, t, n, isUp, isKI, isCall, k, ko, 
                              expected) = 
     let tree = Binomial(s0, r, q, v, t, n)
     let price = 
