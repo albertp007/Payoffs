@@ -47,19 +47,19 @@ module MC =
        Array.map (~-) >> theProcess <| randomArray)
       |> Path.Antithetic
     
-  let gbmPaths r sigma s0 (t:float) n randomArray =
+  let gbmPaths s0 r q v (t:float) n randomArray =
     let dt = t/float n
-    let drift = (r - sigma**2.0/2.0) * dt
+    let drift = (r - v**2.0/2.0) * dt
     randomArray
-    |> Array.map (fun dwt -> drift + sigma * dwt )
+    |> Array.map (fun dwt -> drift + v * dwt )
     |> Array.scan (+) 0.0
     |> Array.map (fun x -> s0 * exp(x))
 
-  let gbm r sigma s0 t n vr =
+  let gbm s0 r q v t n vr =
     let draw = drawNormal 0.0 (t/float n) n
     match vr with
-    | None -> fun() -> draw() |> gbmPaths r sigma s0 t n |> Ordinary
-    | ATV -> fun() -> gbmPaths r sigma s0 t n |> makeAntithetic <| draw()
+    | None -> fun() -> draw() |> gbmPaths s0 r q v t n |> Ordinary
+    | ATV -> fun() -> gbmPaths s0 r q v t n |> makeAntithetic <| draw()
 
   let genPaths n theProcess =
     Array.init n (fun _ -> theProcess())
@@ -82,3 +82,7 @@ module MC =
     match optionType with
     | Call -> max 0.0 intrinsic
     | Put -> max 0.0 -intrinsic
+
+  let upOut optionType strike ko (path:float[]) =
+    if Array.exists ((<) ko) path then 0.0 else
+      european optionType strike path
