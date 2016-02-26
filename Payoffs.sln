@@ -5,6 +5,10 @@ VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Payoffs", "Payoffs.fsproj", "{8EA7CACF-9CBF-48A5-B430-8A48552239D7}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "PayoffsWs", "PayoffsWs\PayoffsWs.fsproj", "{3D69B93F-6D24-4543-AD0F-06C505340703}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "PayoffsLib", "PayoffsLib\PayoffsLib.fsproj", "{C71A6F2B-DE43-4C3D-873D-74C0731F58B0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{8EA7CACF-9CBF-48A5-B430-8A48552239D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8EA7CACF-9CBF-48A5-B430-8A48552239D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8EA7CACF-9CBF-48A5-B430-8A48552239D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D69B93F-6D24-4543-AD0F-06C505340703}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D69B93F-6D24-4543-AD0F-06C505340703}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D69B93F-6D24-4543-AD0F-06C505340703}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D69B93F-6D24-4543-AD0F-06C505340703}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C71A6F2B-DE43-4C3D-873D-74C0731F58B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C71A6F2B-DE43-4C3D-873D-74C0731F58B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C71A6F2B-DE43-4C3D-873D-74C0731F58B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C71A6F2B-DE43-4C3D-873D-74C0731F58B0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

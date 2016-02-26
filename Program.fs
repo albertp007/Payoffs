@@ -20,7 +20,7 @@ open Payoffs.Option
 open Payoffs.Lattice
 open Payoffs.Product.Lattice
 
-[<EntryPoint>]
+// [<EntryPoint>]
 let main argv = 
   let tree = Binomial(100.0, 0.02, 0.0, 0.4, 0.25, 2000)
   let price = 
