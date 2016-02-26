@@ -1,5 +1,5 @@
 ﻿namespace PayoffsWs
 
-module Forms =
+module Forms = ()
 
   
