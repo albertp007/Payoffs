@@ -54,7 +54,7 @@ module Site =
     let AboutPage ctx =
         Templating.Main ctx EndPoint.About "About" [
             H1 [Text "About"]
-            P [Text "This is a template WebSharper client-server application."]
+            P [Text """Payof(fs) is a library for pricing contingency claims using F#.  The "fs" at the end of "Payoffs" is intended to stand for F#.  It is a work-in-progress."""]
         ]
 
     [<Website>]

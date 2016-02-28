@@ -3,31 +3,24 @@ namespace PayoffsWs
 open WebSharper
 open WebSharper.JavaScript
 open WebSharper.Html.Client
+open WebSharper.Formlets
+open Forms
+open Data
 
 [<JavaScript>]
-module Client =
+module Client = 
 
-    let Start input k =
+  let Main() = 
+    let f = ImpliedVolCalculatorFormlet()
+    Formlet.Run 
+      (fun (query : ImpliedVolQuery) -> 
         async {
-            let! data = Server.DoSomething input
-            return k data
+          let! iv, ok = Server.calcImpliedVol query
+          if ok then
+            JS.Alert <| sprintf "Implied volatility: %f" iv
+          else
+            JS.Alert <| sprintf "Implied volatility: Cannot solve for IV given the inputs"
         }
         |> Async.Start
-
-    let Main () =
-        let input = Input [Attr.Value ""] -< []
-        let output = H1 []
-        Div [
-            input
-            Button [Text "Send"]
-            |>! OnClick (fun _ _ ->
-                async {
-                    let! data = Server.DoSomething input.Value
-                    output.Text <- data
-                }
-                |> Async.Start
-            )
-            HR []
-            H4 [Attr.Class "text-muted"] -< [Text "The server responded:"]
-            Div [Attr.Class "jumbotron"] -< [output]
-        ]
+      )
+      f
