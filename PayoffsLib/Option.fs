@@ -40,6 +40,17 @@ module Option =
   | In
   | Out
 
+  /// <summary>
+  /// Black-Scholes formula
+  /// </summary>
+  /// <param name="s0">Underlying price</param>
+  /// <param name="r">Interest rate</param>
+  /// <param name="q">Convenience yield</param>
+  /// <param name="v">Volatility</param>
+  /// <param name="t">Time to expiry in years</param>
+  /// <param name="optType">Call/Put</param>
+  /// <param name="k">Strike</param>
+  /// <returns>Black-Scholes price of the vanilla option</returns>
   let blackScholes s0 r q v t optType k =
     let f = s0 * exp( (r-q) * t )
     let d1 = 1.0 / v / (sqrt t) * (log (s0/k) + (r-q+0.5*v*v)*t)
@@ -49,9 +60,27 @@ module Option =
     | Call -> exp(-r*t)*(f*n(d1)-k*n(d2))
     | Put -> exp(-r*t)*(k*n(-d2)-f*n(-d1))
 
+  /// <summary>
+  /// Calculate implied volatility of a vanilla european option using
+  /// Newton-Raphson method.  The initial guess is based on Brenner, Menachem 
+  /// and Marti G. Subrahmanyam, 1988. A Simple Formula to Compute Implied 
+  /// Standard Deviation, Financial Analyst Journal 5, 80-83
+  /// </summary>
+  /// <param name="precision">Iteration stops once the difference between
+  /// iterations is smaller than this number</param>
+  /// <param name="maxIteration">Iteration stops when the number of iteration
+  /// exceeds the specified number</param>
+  /// <param name="s0">Underlying price</param>
+  /// <param name="r">Interest rate</param>
+  /// <param name="q">Convenience yield holding the underlying</param>
+  /// <param name="t">Time to expiry</param>
+  /// <param name="k">Strike</param>
+  /// <param name="optType">Call/Put</param>
+  /// <param name="p">Vanilla european option price</param>
   let impliedVolatility precision maxIteration s0 r q t k optType p =
     // Newton-Raphson
     let bs v = blackScholes s0 r q v t optType k
+    // initial guess
     let v0 = sqrt( 2.0*System.Math.PI/t) * p / s0
     let vega v = 
       let d1 = 1.0 / v / (sqrt t) * (log (s0/k) + (r-q+0.5*v*v)*t)
