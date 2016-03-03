@@ -11,16 +11,29 @@ open Data
 module Client = 
 
   let Main() = 
-    let f = ImpliedVolCalculatorFormlet()
-    Formlet.Run 
-      (fun (query : ImpliedVolQuery) -> 
-        async {
-          let! iv, ok = Server.calcImpliedVol query
-          if ok then
-            JS.Alert <| sprintf "Implied volatility: %f" iv
-          else
-            JS.Alert <| sprintf "Implied volatility: Cannot solve for IV given the inputs"
-        }
-        |> Async.Start
-      )
-      f
+    let resultLabel = H1 [Class "text-success"] -< [Text "0.0"]
+    let setResult result = 
+      match result with
+      | Some s -> resultLabel.RemoveClass "text-danger"
+                  resultLabel.AddClass "text-success"
+                  resultLabel.Text <- s
+      | None -> resultLabel.RemoveClass "text-success"
+                resultLabel.AddClass "text-danger"
+                resultLabel.Text <- "N/A"
+    
+    let resetResult() = 
+      setResult <| Some "0.0"
+      true
+
+    let onSubmit (query : ImpliedVolQuery) =
+      async {
+        let! iv, ok = Server.calcImpliedVol query
+        if ok then
+          setResult <| Some (iv.ToString())
+        else
+          setResult None
+      }
+      |> Async.Start
+
+    let form = ImpliedVolCalculatorFormlet(resetResult) |> Formlet.Run onSubmit
+    Div [resultLabel] -< [form]

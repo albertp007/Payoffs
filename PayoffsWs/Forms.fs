@@ -6,8 +6,8 @@ open WebSharper.Formlets.Controls
 open PayoffsWs.Data
 open Payoffs.Option
 
+[<JavaScript>]
 module Forms = 
-  [<JavaScript>]
   let makeField typeValidateFunc defaultValue emptyWarningMsg label = 
     Input defaultValue
     |> Validator.IsNotEmpty emptyWarningMsg
@@ -15,8 +15,15 @@ module Forms =
     |> Enhance.WithValidationIcon
     |> Enhance.WithTextLabel label
   
-  [<JavaScript>]
-  let ImpliedVolCalculatorFormlet() : Formlet<ImpliedVolQuery> = 
+  let ImpliedVolCalculatorFormlet(resetFunc) : Formlet<ImpliedVolQuery> = 
+    let submitButtonConf = { 
+      Enhance.FormButtonConfiguration.Default with 
+        Label = Some "Calculate"; Class = Some "btn-primary" 
+    }
+    let resetButtonConf = { 
+      Enhance.FormButtonConfiguration.Default with
+        Label = Some "Reset"
+    } 
     let makeFloatField = makeField Validator.IsFloat
     let makeIntField = makeField Validator.IsInt
     let s0 = makeFloatField "0.0" "Underlying price required" "Underlying price"
@@ -27,8 +34,8 @@ module Forms =
     let k = makeFloatField "0.0" "Strike required" "Strike"
     
     let optType = 
-      Select 0 [ "Call", Call
-                 "Put", Put ]
+      RadioButtonGroup (Some 0) [ "Call", Call; "Put", Put ]
+      |> Formlet.Horizontal
       |> Enhance.WithTextLabel "Option type"
     
     let p = makeFloatField "0.0" "Option price required" "Option price"
@@ -46,6 +53,7 @@ module Forms =
         precision = float precision
         maxIteration = int maxIter }) <*> s0 <*> r <*> q <*> t <*> k <*> optType 
     <*> p <*> precision <*> maxIter
-    |> Enhance.WithSubmitAndResetButtons
+    |> Enhance.WithResetAction resetFunc
+    |> Enhance.WithCustomSubmitAndResetButtons submitButtonConf resetButtonConf
     |> Enhance.WithFormContainer
     |> Enhance.WithLegend "Calculate implied volatility given:"
