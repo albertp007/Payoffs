@@ -22,17 +22,25 @@ module Forms =
         child.SetAttribute("class", newClass)
     formlet
 
-  let makeField typeValidateFunc defaultValue emptyWarningMsg label = 
-    Input defaultValue
-    |> Validator.IsNotEmpty emptyWarningMsg
-    |> typeValidateFunc "Please enter a number"
+  let enhanceFormlet label (formlet:Formlet<'a>) =
+    formlet
     |> Enhance.WithValidationIcon
     |> Enhance.WithTextLabel label
 
-  let makeNonZeroField typeValidateFunc defaultValue emptyWarningMsg label =
-    makeField typeValidateFunc defaultValue emptyWarningMsg label
+  let makeField typeValidateFunc defaultValue emptyWarningMsg = 
+    Input defaultValue
+    |> Validator.IsNotEmpty emptyWarningMsg
+    |> typeValidateFunc "Please enter a number"
+
+  let makeNonZeroField typeValidateFunc defaultValue emptyWarningMsg =
+    makeField typeValidateFunc defaultValue emptyWarningMsg
     |> Validator.Is (fun v -> (float v) > 0.0 ) "Must be larger than 0"
-  
+
+  let makeFloatField = makeField Validator.IsFloat
+  let makeIntField = makeField Validator.IsInt
+  let makePositiveFloatField = makeNonZeroField Validator.IsFloat
+  let makePositiveIntField = makeNonZeroField Validator.IsInt
+
   let ImpliedVolCalculatorFormlet(resetFunc) : Formlet<ImpliedVolQuery> = 
     let submitButtonConf = { 
       Enhance.FormButtonConfiguration.Default with 
@@ -48,24 +56,32 @@ module Forms =
     let makePositiveIntField = makeNonZeroField Validator.IsInt
 
     let s0 = makePositiveFloatField "0.0" "Underlying price required" 
-               "Underlying price"
+             |> enhanceFormlet "Underlying price"
              
-    let r = makeFloatField "0.0" "Interest rate required" "Interest rate"
-    let q = makeFloatField "0.0" "Convenience yield required" "Yield"
+    let r = makeFloatField "0.0" "Interest rate required" 
+            |> enhanceFormlet "Interest rate"
+
+    let q = makeFloatField "0.0" "Convenience yield required" 
+            |> enhanceFormlet "Yield"
+
     let t = makePositiveFloatField "0.0" "Time to expiry required" 
-              "Time to expiry (years)"
-    let k = makePositiveFloatField "0.0" "Strike required" "Strike"
+            |> enhanceFormlet "Time to expiry (years)"
+
+    let k = makePositiveFloatField "0.0" "Strike required" 
+            |> enhanceFormlet "Strike"
     
     let optType = 
       RadioButtonGroup (Some 0) [ "Call", Call; "Put", Put ]
       |> Formlet.Horizontal
       |> Enhance.WithTextLabel "Option type"
     
-    let p = makePositiveFloatField "0.0" "Option price required" "Option price"
-    let precision = 
-      makePositiveFloatField "0.0001" "Precision required" "Precision"
-    let maxIter = 
-      makePositiveIntField "100" "Maximum iteration required" "Max iteration"
+    let p = makePositiveFloatField "0.0" "Option price required" 
+            |> enhanceFormlet "Option price"
+
+    let precision = makePositiveFloatField "0.0001" "Precision required" 
+                    |> enhanceFormlet "Precision"
+    let maxIter = makePositiveIntField "100" "Maximum iteration required" 
+                  |> enhanceFormlet "Max iteration"
 
     Formlet.Yield(fun s0 r q t k optType p precision maxIter -> 
           { s0 = float s0
