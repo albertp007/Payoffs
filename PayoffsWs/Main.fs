@@ -46,7 +46,7 @@ module Site =
     open WebSharper.Html.Server
 
     let HomePage ctx =
-        Templating.Main ctx EndPoint.Home "Home" [
+        Templating.Main ctx EndPoint.Home "Payof(fs)" [
             H1 [Text "Implied Volatility Calculator"]
             Div [ClientSide <@ Client.Main() @>]
         ]
