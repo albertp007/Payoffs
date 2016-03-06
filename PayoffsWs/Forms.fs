@@ -28,6 +28,10 @@ module Forms =
     |> typeValidateFunc "Please enter a number"
     |> Enhance.WithValidationIcon
     |> Enhance.WithTextLabel label
+
+  let makeNonZeroField typeValidateFunc defaultValue emptyWarningMsg label =
+    makeField typeValidateFunc defaultValue emptyWarningMsg label
+    |> Validator.Is (fun v -> (float v) > 0.0 ) "Must be larger than 0"
   
   let ImpliedVolCalculatorFormlet(resetFunc) : Formlet<ImpliedVolQuery> = 
     let submitButtonConf = { 
@@ -40,22 +44,28 @@ module Forms =
     } 
     let makeFloatField = makeField Validator.IsFloat
     let makeIntField = makeField Validator.IsInt
-    let s0 = makeFloatField "0.0" "Underlying price required" "Underlying price"
+    let makePositiveFloatField = makeNonZeroField Validator.IsFloat
+    let makePositiveIntField = makeNonZeroField Validator.IsInt
+
+    let s0 = makePositiveFloatField "0.0" "Underlying price required" 
+               "Underlying price"
+             
     let r = makeFloatField "0.0" "Interest rate required" "Interest rate"
     let q = makeFloatField "0.0" "Convenience yield required" "Yield"
-    let t = 
-      makeFloatField "0.0" "Time to expiry required" "Time to expiry (years)"
-    let k = makeFloatField "0.0" "Strike required" "Strike"
+    let t = makePositiveFloatField "0.0" "Time to expiry required" 
+              "Time to expiry (years)"
+    let k = makePositiveFloatField "0.0" "Strike required" "Strike"
     
     let optType = 
       RadioButtonGroup (Some 0) [ "Call", Call; "Put", Put ]
       |> Formlet.Horizontal
       |> Enhance.WithTextLabel "Option type"
     
-    let p = makeFloatField "0.0" "Option price required" "Option price"
-    let precision = makeFloatField "0.0001" "Precision required" "Precision"
+    let p = makePositiveFloatField "0.0" "Option price required" "Option price"
+    let precision = 
+      makePositiveFloatField "0.0001" "Precision required" "Precision"
     let maxIter = 
-      makeIntField "100" "Maximum iteration required" "Max iteration"
+      makePositiveIntField "100" "Maximum iteration required" "Max iteration"
 
     Formlet.Yield(fun s0 r q t k optType p precision maxIter -> 
           { s0 = float s0
