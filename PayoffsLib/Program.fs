@@ -1,4 +1,8 @@
 ﻿//
+// Payoffs - F# derivatives pricing library
+// Copyright (c) 2016 by Albert Pang <albert.pang@me.com> 
+// All rights reserved.
+//
 // This file is a part of Payoffs
 //
 // Payoffs is free software: you can redistribute it and/or modify

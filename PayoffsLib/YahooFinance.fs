@@ -1,4 +1,24 @@
-﻿namespace Payoffs
+﻿//
+// Payoffs - F# derivatives pricing library
+// Copyright (c) 2016 by Albert Pang <albert.pang@me.com> 
+// All rights reserved.
+//
+// This file is a part of Payoffs
+//
+// Payoffs is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Payoffs is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+namespace Payoffs
 
 open Payoffs.Data
 
@@ -9,7 +29,7 @@ module YahooFinance =
   /// CsvProvider depends on the FSharp.Data.dll assembly
   ///
   type Prices = FSharp.Data.CsvProvider< "Date(date), Open(float), \
-    High(float), Low(float), Close(float), Volume(int64), AdjClose(float)" >
+      High(float), Low(float), Close(float), Volume(int64), AdjClose(float)" >
   
   /// This is a private binding for a string print formatter to create the url
   /// to retrieve historical prices from Yahoo Finance from a certain start
