@@ -63,10 +63,16 @@
     <None Include="Script.fsx" />
     <Compile Include="UnitTests.fs" />
     <Content Include="packages.config" />
+    <Compile Include="Data.fs" />
+    <Compile Include="YahooFinance.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">
       <HintPath>..\packages\FSharp.Core.3.1.2.5\lib\net40\FSharp.Core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FSharp.Data">
+      <HintPath>..\packages\FSharp.Data.2.2.5\lib\net40\FSharp.Data.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FsUnit.NUnit">
@@ -102,9 +108,15 @@
       <HintPath>..\packages\NUnitTestAdapter.2.0.0\lib\NUnit.VisualStudio.TestAdapter.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="StackExchange.Redis">
+      <HintPath>..\packages\StackExchange.Redis.1.0.488\lib\net45\StackExchange.Redis.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Xml.Linq" />
     <Reference Include="WebSharper.Collections">
       <HintPath>..\packages\WebSharper.3.6.10.230\lib\net40\WebSharper.Collections.dll</HintPath>
       <Private>True</Private>
