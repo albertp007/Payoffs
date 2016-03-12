@@ -20,7 +20,7 @@
 //
 namespace Payoffs
 
-open Payoffs.Data
+open Deedle
 
 module YahooFinance = 
   ///
@@ -72,16 +72,10 @@ module YahooFinance =
     let url = makeUrl stockCode startDateOption
     let prices = Prices.Load url
     prices.Rows
-    |> Seq.map (fun p -> 
-         { h = p.High
-           l = p.Low
-           o = p.Open
-           c = p.Close
-           v = p.Volume
-           adj = Some p.AdjClose
-           d = p.Date })
-    |> Seq.toList
-    |> List.rev
+    |> Frame.ofRecords
+    |> Frame.indexColsWith prices.Headers.Value
+    |> Frame.indexRowsDate "Date"
+
   
   // prices.Rows |> Seq.map toBar |> Seq.toList |> List.rev
   /// <summary>This function simply curries downloadHistFromDate with the
