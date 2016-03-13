@@ -64,7 +64,8 @@ module Forms =
          else 
            v.JS.Split(floatListSplitRegex)
            |> Array.map float
-           |> Array.forall (fun f -> f > 0.0)) "A list of float"
+           |> Array.forall (fun f -> f > 0.0)) 
+           "A list of prices, must all be positive"
   
   let makeNonZeroField typeValidateFunc defaultValue emptyWarningMsg = 
     makeNumericField typeValidateFunc defaultValue emptyWarningMsg 
@@ -111,8 +112,10 @@ module Forms =
       |> Enhance.WithTextLabel "Option type"
     
     let p = 
-      makeFloatListField "0.0" "Option price required" 
+      makeFloatListField "0.0" 
+        "Option price required." 
       |> enhanceFormlet "Option price"
+
     let precision = 
       makePositiveFloatField "0.0001" "Precision required" 
       |> enhanceFormlet "Precision"
