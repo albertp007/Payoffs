@@ -31,9 +31,14 @@ module Server =
     async { return R input }
   
   [<Rpc>]
-  let calcImpliedVol (query : ImpliedVolQuery) = 
-    async 
-      { 
-        let iv, _ = impliedVolatility query.precision query.maxIteration query.s0 query.r query.q query.T query.K query.OptType query.price
-        return if iv <> iv then -1.0, false else iv, true
-      }
+  let calcImpliedVol (queries : ImpliedVolQuery []) = 
+    async { 
+      return queries
+             |> Array.map 
+                  (fun query -> 
+                  impliedVolatility query.precision query.maxIteration query.s0 
+                    query.r query.q query.T query.K query.OptType query.price)
+             |> Array.map (fun (res, _) -> 
+                  if res <> res then (-1.0, false)
+                  else (res, true))
+    }

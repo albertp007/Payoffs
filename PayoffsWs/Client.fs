@@ -29,31 +29,25 @@ open Data
 
 [<JavaScript>]
 module Client = 
-
   let Main() = 
-    let resultLabel = H1 [Class "text-success"] -< [Text "0.0"]
-    let setResult result = 
-      match result with
-      | Some s -> resultLabel.RemoveClass "text-danger"
-                  resultLabel.AddClass "text-success"
-                  resultLabel.Text <- s
-      | None -> resultLabel.RemoveClass "text-success"
-                resultLabel.AddClass "text-danger"
-                resultLabel.Text <- "N/A"
+    let resultLabel = H1 [] -< [ Div [ Class "text-success" ] -< [ Text "0" ] ]
+    
+    let setResult (result : (float * bool) []) = 
+      resultLabel.Clear()
+      result 
+      |> Array.iter 
+           (fun (iv, ok) -> 
+           if ok then 
+             resultLabel.Append
+               (Div [ Class "text-success" ] -< [ Text(iv.ToString()) ])
+           else resultLabel.Append(Div [ Class "text-danger" ] -< [ Text "NA"]))
     
     let resetResult() = 
-      setResult <| Some "0.0"
+      setResult [| 0.0, true |]
       true
-
-    let onSubmit (query : ImpliedVolQuery) =
-      async {
-        let! iv, ok = Server.calcImpliedVol query
-        if ok then
-          setResult <| Some (iv.ToString())
-        else
-          setResult None
-      }
-      |> Async.Start
-
+    
+    let onSubmit (queries : ImpliedVolQuery []) = 
+      async { let! results = queries |> Server.calcImpliedVol
+              setResult results } |> Async.Start
     let form = ImpliedVolCalculatorFormlet(resetResult) |> Formlet.Run onSubmit
-    Div [resultLabel] -< [form]
+    Div [ resultLabel ] -< [ form ]
