@@ -83,6 +83,16 @@ module MC =
     | Call -> max 0.0 intrinsic
     | Put -> max 0.0 -intrinsic
 
-  let upOut optionType strike ko (path:float[]) =
-    if Array.exists ((<) ko) path then 0.0 else
-      european optionType strike path
+  let barrier barrierUpDown barrierInOut optionType strike barrierLevel 
+    (path:float[]) =
+
+    let euroPayoff = european optionType strike path
+
+    let triggered = 
+      match barrierUpDown with
+      | Up -> Array.exists (fun x -> x > barrierLevel) path
+      | Down -> Array.exists (fun x -> x > barrierLevel) path
+
+    match barrierInOut with 
+    | In -> if triggered then euroPayoff else 0.0
+    | Out -> if triggered then 0.0 else euroPayoff
