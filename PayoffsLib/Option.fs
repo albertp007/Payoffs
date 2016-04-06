@@ -32,11 +32,11 @@ module Option =
   | European
   | American
 
-  type BarrierDirection =
+  type BarrierUpDown =
   | Up
   | Down
 
-  type BarrierType =
+  type BarrierInOut =
   | In
   | Out
 
