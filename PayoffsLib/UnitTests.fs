@@ -106,11 +106,11 @@ module UnitTests =
     let tree = Binomial(s0, r, q, v, t, n)
     tree.Up |> should equal expected
   
-  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, 1, 52.0, 0, 0)>]
-  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 3, 1, 48.0, 2, 0)>]
-  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 4, 0, 52.0, 3, 3)>]
-  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 2, 0, 48.0, 2, 0)>]
-  let ``Binomial GetAssetPrice`` (s0, r, q, v, t, n, optType, k, i, j) = 
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, 0, 0)>]
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 3, 2, 0)>]
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 4, 3, 3)>]
+  [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 2, 2, 0)>]
+  let ``Binomial GetAssetPrice`` (s0, r, q, v, t, n, i, j) = 
     let tree = Binomial(s0, r, q, v, t, n)
     let d = 1.0 / tree.Up
     
@@ -207,3 +207,18 @@ module UnitTests =
         (barrierPayoff (toBarrierType isKI) (toOptType isCall) k) 
         (barrierValue tree)
     price |> should (equalWithin 0.01) expected
+
+  [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 3.3)>]
+  let ``MC barrier option with antithetic variance reduction`` 
+    ( s0, r, q, v, t, isUp, isIn, isCall, b, k, n, m, expected ) = 
+
+    let upDown = toUpDown isUp
+    let inOut = toBarrierType isIn
+    let optType = toOptType isCall
+    let payoff = MC.barrier upDown inOut optType k b
+    let (estimate, var, std) = 
+      gbm s0 r q v t n ATV
+      |> genPaths m
+      |> mc (payoff |> discountedPayoff r t)
+    
+    estimate |> should (equalWithin 0.01) expected
