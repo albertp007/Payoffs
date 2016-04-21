@@ -1,0 +1,14 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/config/applicationhost.config
+/.vs/Payoffs/v14
+/packages
+/PayoffsLib/bin
+/PayoffsLib/obj
+/PayoffsWs/bin
+/PayoffsWs/Content/WebSharper/WebSharper.Formlets
+/PayoffsWs/Scripts/WebSharper
+/PayoffsWs/obj
+/Settings.FSharpLint
