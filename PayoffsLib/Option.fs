@@ -24,18 +24,39 @@ open MathNet.Numerics.Distributions
 
 module Option =
 
+  /// <summary>
+  /// Type for representing option type
+  /// <para>Call - call option</para>
+  /// <para>Put - put option</para>
+  /// </summary>
   type OptionType =
   | Call
   | Put
 
+  /// <summary>
+  /// Type representing exercise policy
+  /// <para>European - european exercise style, i.e. only at expiry</para>
+  /// <para>American - american exercise style i.e. exercisable any time before
+  /// expiry</para>
+  /// </summary>
   type ExerciseType =
   | European
   | American
 
+  /// <summary>
+  /// Type representing the direction of the trigger
+  /// <para>Up - triggered when underlying price goes above barrier</para>
+  /// <para>Down - triggered when underlying price goes below barrier</para>
+  /// </summary>
   type BarrierUpDown =
   | Up
   | Down
 
+  /// <summary>
+  /// Type representing whether the option is knock-in or knock-out
+  /// <para>In - knock-in</para>
+  /// <para>Out - knock-out</para>
+  /// </summary>
   type BarrierInOut =
   | In
   | Out

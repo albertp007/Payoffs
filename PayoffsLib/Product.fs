@@ -26,36 +26,92 @@ open System.Collections.Generic
 
 module Product = 
   module Lattice = 
+    /// <summary>
+    /// Constructs a Vanilla terminal payoff function
+    /// </summary>
+    /// <param name="optType">Either call or put</param>
+    /// <param name="strike">strike price</param>
     let vanillaPayoff optType strike = 
       fun (tree : Binomial) (i, j, k) -> 
         let intrinsic = tree.GetIntrinsic optType strike (i, j)
         max 0.0 intrinsic
-    
+
+    /// <summary>
+    /// Vanilla state transition function.  There is only one state which is 0
+    /// for all nodes
+    /// </summary>
+    /// <param name="i">Period i</param>
+    /// <param name="j">j up/down moves from the initial price</param>
+    /// <param name="k">state k</param>
+    /// <param name="to_j">the j state to go to</param>
     let vanillaStateFunc (i, j) k to_j = 0
 
+    /// <summary>
+    /// Constructs a european value function which simply returns the induced
+    /// value of the node as there is no special policy to be applied e.g.
+    /// early exercise policy
+    /// </summary>
     let europeanValue = 
       fun (tree : Binomial) (i, j, k) -> 
         tree.GetInducedValue vanillaStateFunc (i, j, k)
-    
+
+    /// <summary>
+    /// Constructs an american value function which compares the induced value
+    /// of the node with its intrinsic value and returns the larger of the two
+    /// </summary>
+    /// <param name="optType">Call or put</param>
+    /// <param name="strike">The strike price</param>
     let americanValue optType strike = 
       fun (tree : Binomial) (i, j, k) -> 
         let induced = tree.GetInducedValue vanillaStateFunc (i, j, k)
         let intrinsic = tree.GetIntrinsic optType strike (i, j)
         max intrinsic induced
     
+    /// <summary>
+    /// Lookback put option state transition function.  Since the j index
+    /// represents the number of up/down moves from the initial price, we can
+    /// use the j index as state to represent the maximum price of a particular
+    /// path in a particular node.  Therefore, at a node (i, j) in state k (
+    /// which is the max value attained so far), when it goes up to j+1 and 
+    /// j+1 is larger than k, then j+1 is the max price attained.  Otherwise,
+    /// the max price is still k.  Note that the k value itself directly
+    /// translates to a price
+    /// </summary>
+    /// <param name="i">Period i</param>
+    /// <param name="j">j up/down move from the initial price</param>
+    /// <param name="k">state k</param>
+    /// <param name="to_j">the going to state</param>
     let lookbackPutState (i, j) k to_j = max k to_j
     
+    /// <summary>
+    /// Calculates the state price given the state k which is simply the number
+    /// of up/down moves from the initial price.
+    /// </summary>
+    /// <param name="tree">the binomial tree</param>
+    /// <param name="state">the state</param>
     let lookbackPutStatePrice (tree : Binomial) state = 
       let factor = 
         if (state > 0) then tree.Up
         else 1.0 / tree.Up
       tree.InitialAssetPrice * (factor ** float state)
     
+    /// <summary>
+    /// Calculates the payoff of a lookback put option at a terminal node
+    /// </summary>
+    /// <param name="tree">the binomial tree</param>
+    /// <param name="i">Period i</param>
+    /// <param name="j">j up/down moves from the initial price</param>
+    /// <param name="k">state k which represents the max price</param>
     let lookbackPutPayoff (tree : Binomial) (i, j, k) = 
       let nodePrice = tree.GetAssetPrice(i, j)
       let maxPrice = lookbackPutStatePrice tree k
       max 0.0 (maxPrice - nodePrice)
     
+    /// <summary>
+    /// Constructs a function which returns the node value of a lookback put
+    /// option
+    /// </summary>
+    /// <param name="exerciseType">European or American</param>
     let lookbackPutValue exerciseType = 
       fun (tree : Binomial) (i, j, k) -> 
         let induced = tree.GetInducedValue lookbackPutState (i, j, k)
@@ -66,6 +122,12 @@ module Product =
           let maxPrice = lookbackPutStatePrice tree k
           max induced (maxPrice - assetPrice)
 
+    /// <summary>
+    /// Constructs a function which determins whether the barrier option is
+    /// triggered at a particular price
+    /// </summary>
+    /// <param name="direction">Up or Down</param>
+    /// <param name="triggerPrice">the barrier price</param>
     let barrierTrigger direction triggerPrice =
       let compOp = match direction with
                    | Up -> (>=)
@@ -73,8 +135,18 @@ module Product =
       fun assetPrice ->
         compOp assetPrice triggerPrice
 
-    let barrierState direction (tree : Binomial) koPrice = 
-      let isTriggered = barrierTrigger direction koPrice
+    /// <summary>
+    /// Constructs a state transition function for barrier option.  If the state
+    /// at any node is triggered, then the nodes it leads to, both up or down,
+    /// will have the triggered state.  If the state at any node is un-triggered
+    /// the state at the up node or down node will depend on the prices at those
+    /// nodes
+    /// </summary>
+    /// <param name="direction">Up or Down</param>
+    /// <param name="tree">the binomial tree</param>
+    /// <param name="barrier">barrier price</param>
+    let barrierState direction (tree : Binomial) barrier = 
+      let isTriggered = barrierTrigger direction barrier
       fun (i, j) k to_j -> 
         // state 1 - triggered
         // state 0 - not triggered
@@ -83,6 +155,15 @@ module Product =
           let nodePrice = tree.GetAssetPrice(i + 1, to_j)
           if isTriggered nodePrice then 1 else 0
 
+    /// <summary>
+    /// Constructs a barrier payoff function.  If the state is triggered and
+    /// it's a knock-in, then return the terminal payoff value, otherwise return
+    /// 0.0.  If it's tirggered and it's a knock-out, then return 0.0 otherwise
+    /// return the terminal payoff value.
+    /// </summary>
+    /// <param name="barrierType">In or Out</param>
+    /// <param name="optType">Call or Put</param>
+    /// <param name="strike">the strike price</param>
     let barrierPayoff barrierType optType strike =
       fun (tree: Binomial) (i, j, k) ->
         let isNoValue = 
@@ -94,6 +175,12 @@ module Product =
           let intrinsic = tree.GetIntrinsic optType strike (i, j)
           max 0.0 intrinsic
     
+    /// <summary>
+    /// Constructs a node value function for a barrier option, which returns
+    /// the induced value of that node if the state is triggered for knock-outs
+    /// or not triggered for knock-ins
+    /// </summary>
+    /// <param name="tree">the binomial tree</param>
     let barrierValue (tree: Binomial) =
       let stateFunc (i, j) k to_j =
         if k = 1 then 1
