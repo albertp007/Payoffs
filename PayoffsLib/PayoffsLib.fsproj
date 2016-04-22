@@ -61,7 +61,6 @@
     <Compile Include="Product.fs" />
     <Compile Include="Program.fs" />
     <None Include="Script.fsx" />
-    <Compile Include="UnitTests.fs" />
     <Content Include="packages.config" />
     <Compile Include="Data.fs" />
     <Compile Include="YahooFinance.fs" />

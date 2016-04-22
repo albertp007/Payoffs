@@ -156,3 +156,53 @@ module Lattice =
       this.SetAssetPrices <| Binomial.NodeAssetPrice s0 this.Up (1.0/this.Up)
       Binomial.IterRange [0..(this.Period-1)] <| this.ForwardFrom stateFunc
      
+  module UnitTests =
+
+    open NUnit.Framework
+    open FsUnit
+    open Payoffs.Option.UnitTests
+
+    [<TestCase(50.0, 0.05, 0.0, 0.4, 0.25, 5000)>]
+    let ``Binomial - number of nodes`` (s0, r, q, v, t, n) = 
+      let expected = (n + 1) * (n + 2) / 2
+      let tree = Binomial(s0, r, q, v, t, n)
+      tree.NumNodes |> should equal expected
+  
+    [<TestCase(50.0, 0.05, 0.0, 0.4, 0.25, 3)>]
+    let ``Binomial calc up down`` (s0, r, q, v, t, n) = 
+      let dt = t / float n
+      let expected = exp (v * sqrt dt)
+      let tree = Binomial(s0, r, q, v, t, n)
+      tree.Up |> should equal expected
+  
+    [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, 0, 0)>]
+    [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 3, 2, 0)>]
+    [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 4, 3, 3)>]
+    [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 2, 2, 0)>]
+    let ``Binomial GetAssetPrice`` (s0, r, q, v, t, n, i, j) = 
+      let tree = Binomial(s0, r, q, v, t, n)
+      let d = 1.0 / tree.Up
+    
+      let factor = 
+        if j > 0 then tree.Up
+        else d
+    
+      let expected = s0 * (factor ** float (abs j))
+      tree.BuildGrid()
+      tree.GetAssetPrice(i, j) |> should (equalWithin 0.01) expected
+  
+    [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, false, 52.0)>]
+    [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, false, 48.0)>]
+    [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, true, 52.0)>]
+    [<TestCase(50.0, 0.05, 0.0, 0.3, 2, 5, true, 48.0)>]
+    let ``Binomial GetIntrinsic`` (s0, r, q, v, t, n, isCall, k) = 
+      let optType' = toOptType isCall
+    
+      let expected = 
+        match optType' with
+        | Call -> s0 - k
+        | Put -> k - s0
+    
+      let tree = Binomial(s0, r, q, v, t, n)
+      tree.BuildGrid()
+      tree.GetIntrinsic optType' k (0, 0) |> should (equalWithin 0.01) expected

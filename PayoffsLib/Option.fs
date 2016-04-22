@@ -92,3 +92,38 @@ module Option =
       else iter precision maxIteration (n+1) f current
     iter precision maxIteration 0 iv v0
 
+  module UnitTests =
+
+    open NUnit.Framework
+    open FsUnit
+
+    let toOptType isCall = 
+      match isCall with
+      | true -> Call
+      | false -> Put
+
+    let toUpDown isUp = 
+      match isUp with
+      | true -> Up
+      | false -> Down
+
+    let toBarrierType isKI =
+      match isKI with
+      | true -> In
+      | false -> Out
+
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, 100.0)>]
+    let ``Black Scholes equation put-call parity`` (s0, r, q, v, t, k) = 
+      let call = blackScholes s0 r q v t Call k
+      let put = blackScholes s0 r q v t Put k
+      put + s0 |> should (equalWithin 0.0001) (call + k * exp (-r * t))
+  
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, 100.0, 8.19755391)>]
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, false, 100.0, 7.69880183)>]
+    let ``European Implied Volatility`` (s0, r, q, v, t, isCall, k, price) = 
+      let precision = 0.0001
+      let maxIter = 100
+      let optType = toOptType isCall
+      let price' = blackScholes s0 r q v t optType k
+      let (v', _) = impliedVolatility precision maxIter s0 r q t k optType price
+      v' |> should (equalWithin precision) v
