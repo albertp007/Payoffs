@@ -23,11 +23,26 @@ module Main
 open Payoffs.Option
 open Payoffs.Lattice
 open Payoffs.Product.Lattice
+open Payoffs.MC
+open System.Threading.Tasks
 
-// [<EntryPoint>]
-let main argv = 
+let testBinomial() =
   let tree = Binomial(100.0, 0.02, 0.0, 0.4, 0.25, 2000)
   let price = 
     tree.Price vanillaStateFunc (vanillaPayoff Call 100.0) europeanValue
   printfn "%A" price
+
+let task1() =
+  let g() = gbmGenPaths 100.0 0.02 0.0 0.4 0.25 3 ATV
+  let payoff() = barrier Up Out Call 100.0 125.0 |> discountedPayoff 0.02 0.25
+  mcpar 10 10000000 g payoff
+
+let task2() =
+  let g() = gbmGenPaths 100.0 0.02 0.0 0.4 0.25 3 ATV
+  let payoff() = barrier Up Out Call 100.0 125.0 |> discountedPayoff 0.02 0.25  
+  Parallel.For(0, 10, fun _ -> mc 1000000 (g()) (payoff()) |> ignore )
+
+// [<EntryPoint>]
+let main argv = 
+  task2() |> ignore
   0 // return an integer exit code
