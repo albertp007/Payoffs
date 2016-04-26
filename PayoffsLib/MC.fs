@@ -383,6 +383,13 @@ module MC =
     [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 5, 3.3)>]
     [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 10, 3.3)>]
     [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 20, 3.3)>]
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 25, 3.3)>]
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 50, 3.3)>]
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 100, 3.3)>]
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 200, 3.3)>]
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 500, 3.3)>]
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 1000, 3.3)>]
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 2000, 3.3)>]
     let ``Parallel MC barrier option with antithetic variance reduction`` 
       ( s0, r, q, v, t, isUp, isIn, isCall, b, k, n, m, batch, expected ) = 
 
