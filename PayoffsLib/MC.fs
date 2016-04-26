@@ -249,12 +249,13 @@ module MC =
   /// each thread will have their own copy
   /// </summary>
   /// <param name="numBatches">Number of batches to split into</param>
-  /// <param name="numPaths">Number of paths to generate in each batch</param>
+  /// <param name="numPaths">Total number of paths to generate</param>
   /// <param name="genPaths">Function which generates a path generator function
   /// </param>
   /// <param name="payoff">Function which generates a payoff function</param>
   let mcpar numBatches numPaths genPaths payoff =
-    let task = async { return mc numPaths (genPaths()) (payoff()) }
+    let pathsPerBatch = numPaths/numBatches
+    let task = async { return mc pathsPerBatch (genPaths()) (payoff()) }
     task 
     |> List.replicate numBatches 
     |> Async.Parallel
@@ -375,13 +376,13 @@ module MC =
     
       estimate |> should (equalWithin 0.01) expected
 
-    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 1000000, 1, 3.3)>]
-    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 1000000, 2, 3.3)>]
-    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 1000000, 3, 3.3)>]
-    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 1000000, 4, 3.3)>]
-    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 1000000, 5, 3.3)>]
-    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 1000000, 10, 3.3)>]
-    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 1000000, 20, 3.3)>]
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 1, 3.3)>]
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 2, 3.3)>]
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 3, 3.3)>]
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 4, 3.3)>]
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 5, 3.3)>]
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 10, 3.3)>]
+    [<TestCase(100.0, 0.02, 0.0, 0.4, 0.25, true, false, true, 125.0, 100.0, 3, 10000000, 20, 3.3)>]
     let ``Parallel MC barrier option with antithetic variance reduction`` 
       ( s0, r, q, v, t, isUp, isIn, isCall, b, k, n, m, batch, expected ) = 
 
