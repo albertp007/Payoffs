@@ -175,14 +175,16 @@ module MC =
     // this should be super quick ideally
     let paths = allocatePaths vr m n
 
-    let dist = Normal.WithMeanVariance(0.0, (t/(float n)))
+    let dist = Normal.WithMeanVariance(0.0, 1.0)
 
     let flipSign (original: float[]) = fun i _ _ -> -original.[i]
 
     let calcPriceSample =
       let dt = t/float n
+      let v_sqrt_dt = v * sqrt dt
       let drift = (r - v**2.0/2.0) * dt
-      fun _ prev current -> prev * exp ( drift + current * v)
+
+      fun _ prev current -> prev * exp ( drift + current * v_sqrt_dt)
 
     match paths with
     | Ordinarys (_, _, a) -> 
